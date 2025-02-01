@@ -39,15 +39,6 @@ import librosa
 def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
     """
     Transcribe audio file to text using Whisper large-v3-turbo model.
-
-    Args:
-        input_path (str): Path to input audio file
-        output_path (str, optional): Output path relative to dist directory
-        device (str, optional): Device to use for transcription
-        torch_dtype (torch.dtype, optional): Torch data type to use for transcription
-
-    Returns:
-        bool: True if transcription succeeded, False otherwise
     """
     try:
         print(f"\nTranscribing audio: {os.path.basename(input_path)}...")
@@ -56,68 +47,50 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         os.makedirs("dist", exist_ok=True)
 
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = "cuda:0" if torch.cuda.is_available() else "cpu"
         if torch_dtype is None:
-            torch_dtype = torch.float16 if device == "cuda" else torch.float32
+            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-        # Primeiro carregar o processador para obter a taxa de amostragem correta
-        processor = AutoProcessor.from_pretrained("openai/whisper-large-v3-turbo")
-
-        # Carregar áudio com reamostragem para 16kHz usando soundfile
-        audio_array, original_sr = sf.read(input_path)
-
-        # Reamostrar para 16kHz se necessário
-        if original_sr != processor.feature_extractor.sampling_rate:
-            audio_array = librosa.resample(
-                audio_array,
-                orig_sr=original_sr,
-                target_sr=processor.feature_extractor.sampling_rate,
-            )
-            sampling_rate = processor.feature_extractor.sampling_rate
-        else:
-            sampling_rate = original_sr
-
-        # Verificar e converter para mono se necessário
-        if len(audio_array.shape) > 1:
-            audio_array = audio_array.mean(axis=1)
+        # Carregar modelo e processador
+        model_id = "openai/whisper-large-v3-turbo"
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            "openai/whisper-large-v3-turbo",
+            model_id,
             torch_dtype=torch_dtype,
-            device_map=device,
-            attn_implementation="sdpa" if device == "cuda" else "eager",
             low_cpu_mem_usage=True,
             use_safetensors=True,
+            attn_implementation="sdpa" if torch.cuda.is_available() else "eager",
+        )
+        model.to(device)
+
+        processor = AutoProcessor.from_pretrained(model_id)
+
+        # Criar pipeline
+        pipe = pipeline(
+            "automatic-speech-recognition",
+            model=model,
+            tokenizer=processor.tokenizer,
+            feature_extractor=processor.feature_extractor,
+            chunk_length_s=30,  # chunk length in seconds
+            batch_size=16,  # batch size for processing chunks
+            torch_dtype=torch_dtype,
+            device=device,
         )
 
-        # Processar o áudio
-        inputs = processor(
-            audio_array,
-            sampling_rate=sampling_rate,
-            return_tensors="pt",
-            return_attention_mask=True,
-            truncation=False,
-            padding="longest",
-        ).to(device=device, dtype=torch_dtype)
-
-        # Configurações de geração atualizadas
+        # Configurações de geração
         generate_kwargs = {
-            "language": "pt",
-            "task": "transcribe",  # Adicionar especificação explícita da tarefa
-            "return_timestamps": False,  # Remover timestamps se não for necessário
-            "no_speech_threshold": 0.6,
+            "task": "transcribe",
+            "language": "portuguese",
+            "condition_on_prev_tokens": False,
             "compression_ratio_threshold": 1.35,
             "temperature": (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
+            "logprob_threshold": -1.0,
+            "no_speech_threshold": 0.6,
+            "return_timestamps": True,
         }
 
-        result = model.generate(inputs.input_features, **generate_kwargs)
-
-        # Decodificar com o processador
-        transcription = processor.batch_decode(
-            result,
-            skip_special_tokens=True,
-            decode_with_timestamps=False,  # Desativar se não usar timestamps
-        )[0]
+        # Realizar a transcrição
+        result = pipe(input_path, generate_kwargs=generate_kwargs)
 
         # Set output path
         if output_path:
@@ -127,8 +100,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             output_path = os.path.join("dist", f"{base_name}.txt")
 
+        # Salvar resultado
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(transcription)
+            f.write(result["text"])
 
         print(f"✓ Transcription saved to: {output_path}")
         return True
