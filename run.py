@@ -120,6 +120,7 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         else:
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             output_path = os.path.join("dist", f"{base_name}.txt")
+            os.makedirs("dist", exist_ok=True)
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(organized_text)
