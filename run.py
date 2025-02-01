@@ -34,7 +34,7 @@ from transformers import logging as transformers_logging
 from ui import ProgressBar
 
 
-def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
+def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None, model="deepseek/deepseek-r1:free"):
     """
     Transcribe audio file to text using Whisper large-v3-turbo model.
     """
@@ -94,7 +94,27 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         result = pipe(input_path, generate_kwargs=generate_kwargs)
         progress.update("Transcribing audio", 100)
 
+        # Ask user if they want to process the text
+        print("\nTranscription complete. What would you like to do?")
+        print("1. Save raw transcription")
+        print("2. Process and organize text before saving")
+        choice = input("Your choice [1/2]: ").strip()
+
+        if choice == "2":
+            progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
+            from ai_transcript_processor import process_text
+            organized_text = process_text(result["text"], model=model)
+            
+            if not organized_text:
+                print("Processing failed, saving raw transcription instead")
+                organized_text = result["text"]
+        else:
+            organized_text = result["text"]
+
+        progress.update("Processing text with AI", 100)
+
         progress.simulate_progress("Saving transcription...", start_from=0, until=90)
+        
         if output_path:
             output_path = os.path.join("dist", output_path)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -103,7 +123,7 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             output_path = os.path.join("dist", f"{base_name}.txt")
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(result["text"])
+            f.write(organized_text)
 
         progress.update("Saving transcription", 100)
         print(f"\n✓ Transcription saved to: {output_path}")
@@ -134,6 +154,13 @@ def check_ffmpeg_installation():
 
 def main():
     """Main transcription execution flow"""
+    # Add these diagnostic prints
+    print("\nPyTorch CUDA Diagnostics:")
+    print(f"CUDA available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"Current device: {torch.cuda.current_device()}")
+        print(f"Device name: {torch.cuda.get_device_name()}")
+    
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument("--audio", required=True, help="Input audio file(s)")
     parser.add_argument("--output", help="Output path (relative to dist directory)")
