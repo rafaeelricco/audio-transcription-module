@@ -94,7 +94,6 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         result = pipe(input_path, generate_kwargs=generate_kwargs)
         progress.update("Transcribing audio", 100)
 
-        # Ask user if they want to process the text
         print("\nTranscription complete. What would you like to do?")
         print("1. Save raw transcription")
         print("2. Process and organize text before saving")
@@ -147,8 +146,7 @@ def check_ffmpeg_installation():
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         print("\nError: ffmpeg is required but not installed.")
-        if sys.platform == "darwin":
-            print("Install on macOS with:\n  brew install ffmpeg")
+        print("Install on macOS with:\n  brew install ffmpeg")
         sys.exit(1)
 
 

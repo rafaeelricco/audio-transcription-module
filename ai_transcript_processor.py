@@ -9,7 +9,6 @@ def process_text(input_text, model="deepseek/deepseek-r1:free"):
     Processa texto usando um modelo via OpenRouter
     """
     try:
-        # Obtém a chave API da variável de ambiente
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
             raise ValueError("Variável de ambiente OPENROUTER_API_KEY não encontrada")
@@ -19,7 +18,6 @@ def process_text(input_text, model="deepseek/deepseek-r1:free"):
             api_key=api_key,
         )
 
-        # Configura o prompt
         prompt = """
         Instruções:
 
@@ -33,7 +31,7 @@ def process_text(input_text, model="deepseek/deepseek-r1:free"):
         Inclua exemplos ou listas quando necessário para melhorar a clareza.
 
         Texto:""" + input_text
-        # Faz a requisição ao OpenRouter
+
         completion = client.chat.completions.create(
             model=model,
             messages=[
@@ -44,7 +42,6 @@ def process_text(input_text, model="deepseek/deepseek-r1:free"):
             ]
         )
 
-        # Verifica se a resposta é válida
         if not completion or not completion.choices or len(completion.choices) == 0:
             raise ValueError("Resposta inválida da API do OpenRouter")
         
