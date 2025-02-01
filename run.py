@@ -34,7 +34,7 @@ from transformers import logging as transformers_logging
 from ui import ProgressBar
 
 
-def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None, model="deepseek/deepseek-r1:free"):
+def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None, model="anthropic/claude-3.5-sonnet"):
     """
     Transcribe audio file to text using Whisper large-v3-turbo model.
     """
