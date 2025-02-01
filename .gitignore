@@ -12,3 +12,4 @@ models
 performance
 assets
 dist
+__pycache__
