@@ -1,7 +1,5 @@
 # Audio Transcription Module
 
-## System Architecture
-
 ### Audio Transcription Module (`/audio_transcription`)
 
 - `run.py` - Main transcription executor
