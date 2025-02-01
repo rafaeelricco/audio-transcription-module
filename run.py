@@ -29,12 +29,17 @@ import os
 import torch
 from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
 from argparse import ArgumentParser
+import warnings
+from transformers import logging as transformers_logging
 
 
 def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
     """
     Transcribe audio file to text using Whisper large-v3-turbo model.
     """
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    transformers_logging.set_verbosity_error()
+
     try:
         print(f"\nTranscribing audio: {os.path.basename(input_path)}...")
 
