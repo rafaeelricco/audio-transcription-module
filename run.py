@@ -103,7 +103,7 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         if choice == "2":
             progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
             from ai_transcript_processor import process_text
-            organized_text = process_text(result["text"], model=model)
+            organized_text = process_text(result["text"], model="deepseek/deepseek-r1:free")
             
             if not organized_text:
                 print("Processing failed, saving raw transcription instead")
@@ -154,12 +154,20 @@ def check_ffmpeg_installation():
 
 def main():
     """Main transcription execution flow"""
-    # Add these diagnostic prints
     print("\nPyTorch CUDA Diagnostics:")
+    print(f"PyTorch version: {torch.__version__}")
     print(f"CUDA available: {torch.cuda.is_available()}")
     if torch.cuda.is_available():
         print(f"Current device: {torch.cuda.current_device()}")
         print(f"Device name: {torch.cuda.get_device_name()}")
+        print(f"CUDA version: {torch.version.cuda}")
+        print(f"cuDNN version: {torch.backends.cudnn.version()}")
+    else:
+        print("\n⚠️ Atenção: PyTorch não está detectando a GPU. Verifique se:")
+        print("1. O PyTorch foi instalado com suporte a CUDA")
+        print("2. A versão do CUDA é compatível com seus drivers")
+        print("\nPara instalar o PyTorch com suporte a CUDA 12.1, execute:")
+        print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
     
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument("--audio", required=True, help="Input audio file(s)")

@@ -1,5 +1,8 @@
 import os
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def process_text(input_text, model="deepseek/deepseek-r1:free"):
     """
