@@ -10,8 +10,12 @@ Key features:
 - Batch processing capabilities
 
 Basic usage:
-  # Default output to dist/input_name.txt
-  python run.py --audio assets/meeting.mp3
+  # Default output to dist/example.txt
+  python run.py --audio example.flac
+
+  # Specify processing device
+  python run.py --audio example.flac --device cpu    
+  python run.py --audio example.flac --device gpu   
 
   # Custom output path
   python run.py --audio assets/interview.mp3 --output transcripts/interview.txt
@@ -34,7 +38,6 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
     try:
         print(f"\nTranscribing audio: {os.path.basename(input_path)}...")
 
-        # Create dist directory if not exists
         os.makedirs("dist", exist_ok=True)
 
         if device is None:
@@ -42,7 +45,6 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         if torch_dtype is None:
             torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-        # Carregar modelo e processador
         model_id = "openai/whisper-large-v3-turbo"
 
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
@@ -56,19 +58,17 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
 
         processor = AutoProcessor.from_pretrained(model_id)
 
-        # Criar pipeline
         pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
             tokenizer=processor.tokenizer,
             feature_extractor=processor.feature_extractor,
-            chunk_length_s=30,  # chunk length in seconds
-            batch_size=16,  # batch size for processing chunks
+            chunk_length_s=30,
+            batch_size=16,
             torch_dtype=torch_dtype,
             device=device,
         )
 
-        # Configurações de geração
         generate_kwargs = {
             "task": "transcribe",
             "language": "portuguese",
@@ -80,10 +80,8 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             "return_timestamps": True,
         }
 
-        # Realizar a transcrição
         result = pipe(input_path, generate_kwargs=generate_kwargs)
 
-        # Set output path
         if output_path:
             output_path = os.path.join("dist", output_path)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -91,7 +89,6 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             output_path = os.path.join("dist", f"{base_name}.txt")
 
-        # Salvar resultado
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(result["text"])
 
@@ -118,8 +115,6 @@ def check_ffmpeg_installation():
         print("\nError: ffmpeg is required but not installed.")
         if sys.platform == "darwin":
             print("Install on macOS with:\n  brew install ffmpeg")
-        else:
-            print("Download from: https://ffmpeg.org/download.html")
         sys.exit(1)
 
 
@@ -128,27 +123,37 @@ def main():
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument("--audio", required=True, help="Input audio file(s)")
     parser.add_argument("--output", help="Output path (relative to dist directory)")
+    parser.add_argument(
+        "--device", choices=["cpu", "gpu"], help="Specify processing device (cpu/gpu)"
+    )
     args = parser.parse_args()
 
-    # Check ffmpeg first
     check_ffmpeg_installation()
 
-    # Device selection
-    print("\nSelect processing device:")
-    print("1. CPU (recommended if no NVIDIA GPU)")
-    print("2. GPU (faster but requires CUDA)")
-
-    choice = input("Your choice [1/2]: ").strip()
     use_gpu = False
 
-    if choice == "2":
-        if torch.cuda.is_available():
-            use_gpu = True
-            print("Using GPU acceleration 🚀")
+    if args.device:
+        if args.device == "gpu":
+            if torch.cuda.is_available():
+                use_gpu = True
+                print("Using GPU acceleration 🚀")
+            else:
+                print("GPU not available, falling back to CPU ⚠️")
         else:
-            print("GPU not available, falling back to CPU ⚠️")
+            print("Using CPU for processing")
+    else:
+        print("\nSelect processing device:")
+        print("1. CPU (recommended if no NVIDIA GPU)")
+        print("2. GPU (faster but requires CUDA)")
 
-    # Pass configuration to transcription
+        choice = input("Your choice [1/2]: ").strip()
+        if choice == "2":
+            if torch.cuda.is_available():
+                use_gpu = True
+                print("Using GPU acceleration 🚀")
+            else:
+                print("GPU not available, falling back to CPU ⚠️")
+
     success = transcribe_audio(
         args.audio,
         args.output,
