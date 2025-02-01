@@ -31,6 +31,7 @@ from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
 from argparse import ArgumentParser
 import warnings
 from transformers import logging as transformers_logging
+from ui import ProgressBar
 
 
 def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
@@ -39,9 +40,10 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
     """
     warnings.filterwarnings("ignore", category=FutureWarning)
     transformers_logging.set_verbosity_error()
+    progress = ProgressBar()
 
     try:
-        print(f"\nTranscribing audio: {os.path.basename(input_path)}...")
+        progress.simulate_progress("Loading model...", start_from=0, until=40)
 
         os.makedirs("dist", exist_ok=True)
 
@@ -62,7 +64,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         model.to(device)
 
         processor = AutoProcessor.from_pretrained(model_id)
+        progress.update("Loading model", 100)
 
+        progress.simulate_progress("Initializing pipeline...", start_from=0, until=70)
         pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -73,7 +77,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             torch_dtype=torch_dtype,
             device=device,
         )
+        progress.update("Initializing pipeline", 100)
 
+        progress.simulate_progress("Transcribing audio...", start_from=0, until=90)
         generate_kwargs = {
             "task": "transcribe",
             "language": "portuguese",
@@ -86,7 +92,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         }
 
         result = pipe(input_path, generate_kwargs=generate_kwargs)
+        progress.update("Transcribing audio", 100)
 
+        progress.simulate_progress("Saving transcription...", start_from=0, until=90)
         if output_path:
             output_path = os.path.join("dist", output_path)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -97,11 +105,12 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(result["text"])
 
-        print(f"✓ Transcription saved to: {output_path}")
+        progress.update("Saving transcription", 100)
+        print(f"\n✓ Transcription saved to: {output_path}")
         return True
 
     except Exception as e:
-        print(f"✗ Transcription error: {str(e)}")
+        print(f"\n✗ Transcription error: {str(e)}")
         return False
 
 
