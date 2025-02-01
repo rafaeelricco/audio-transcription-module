@@ -1,10 +1,4 @@
-"""
-            _                      
-   _____   (_)  _____  _____  ____ 
-  / ___/  / /  / ___/ / ___/ / __ \
- / /     / /  / /__  / /__  / /_/ /
-/_/     /_/   \___/  \___/  \____/ 
-                                   
+"""                                
 © r1cco.com
 
 Audio Transcription Module
@@ -31,9 +25,6 @@ import os
 import torch
 from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
 from argparse import ArgumentParser
-from datasets import Audio
-import soundfile as sf
-import librosa
 
 
 def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
