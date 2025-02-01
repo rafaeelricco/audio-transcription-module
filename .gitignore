@@ -1,0 +1,14 @@
+.env
+/json
+/output
+/env
+/venv
+*.json
+*.csv
+*.log
+*.pkl
+data
+models
+performance
+assets
+dist
