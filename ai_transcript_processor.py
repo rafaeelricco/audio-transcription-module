@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def process_text(input_text, model="deepseek/deepseek-r1:free"):
+def process_text(input_text, model="anthropic/claude-3.5-sonnet"):
     """
     Processa texto usando um modelo via OpenRouter
     """
