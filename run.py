@@ -115,18 +115,29 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         progress.simulate_progress("Saving transcription...", start_from=0, until=90)
         
         if output_path:
-            output_path = os.path.join("dist", output_path)
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            base_output_path = os.path.join("dist", output_path)
+            output_dir = os.path.dirname(base_output_path)
         else:
             base_name = os.path.splitext(os.path.basename(input_path))[0]
-            output_path = os.path.join("dist", f"{base_name}.txt")
-            os.makedirs("dist", exist_ok=True)
+            output_dir = os.path.join("dist", base_name)
+            base_output_path = os.path.join(output_dir, f"{base_name}")
 
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(organized_text)
+        os.makedirs(output_dir, exist_ok=True)
+
+        raw_path = f"{base_output_path}_raw.txt"
+        with open(raw_path, "w", encoding="utf-8") as f:
+            f.write(result["text"])
+
+        if choice == "2":
+            organized_path = f"{base_output_path}_organized.txt"
+            with open(organized_path, "w", encoding="utf-8") as f:
+                f.write(organized_text)
+            print(f"\n✓ Raw transcription saved to: {raw_path}")
+            print(f"✓ Organized transcription saved to: {organized_path}")
+        else:
+            print(f"\n✓ Transcription saved to: {raw_path}")
 
         progress.update("Saving transcription", 100)
-        print(f"\n✓ Transcription saved to: {output_path}")
         return True
 
     except Exception as e:
