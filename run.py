@@ -102,13 +102,19 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         if choice == "2":
             progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
             from ai_transcript_processor import process_text
-            organized_text = process_text(result["text"], model="deepseek/deepseek-r1:free")
+            try:
+                organized_text = process_text(result["text"], model="deepseek/deepseek-r1:free")
+                ai_success = True
+            except Exception as ai_error:
+                print(f"\n✗ AI processing error: {str(ai_error)}")
+                organized_text = None
+                ai_success = False
             
             if not organized_text:
-                print("Processing failed, saving raw transcription instead")
-                organized_text = result["text"]
+                print("AI processing failed. Only raw transcription will be saved.")
+                ai_success = False
         else:
-            organized_text = result["text"]
+            ai_success = True 
 
         progress.update("Processing text with AI", 100)
 
@@ -129,11 +135,16 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             f.write(result["text"])
 
         if choice == "2":
-            organized_path = f"{base_output_path}_organized.txt"
-            with open(organized_path, "w", encoding="utf-8") as f:
-                f.write(organized_text)
-            print(f"\n✓ Raw transcription saved to: {raw_path}")
-            print(f"✓ Organized transcription saved to: {organized_path}")
+            if ai_success:
+                organized_path = f"{base_output_path}_organized.txt"
+                with open(organized_path, "w", encoding="utf-8") as f:
+                    f.write(organized_text)
+                print(f"\n✓ Raw transcription saved to: {raw_path}")
+                print(f"✓ Organized transcription saved to: {organized_path}")
+            else:
+                print(f"\n✓ Raw transcription saved to: {raw_path}")
+                print("✗ Organized version not saved due to processing errors")
+                return False  # Indicate failure to main program
         else:
             print(f"\n✓ Transcription saved to: {raw_path}")
 
