@@ -3,6 +3,9 @@
 ### Audio Transcription Module (`/audio_transcription`)
 
 - `run.py` - Main transcription executor
+- `ai_transcript_processor.py` - AI-powered text organization
+- `ui.py` - Progress tracking interface
+- `activate.ps1` - Environment setup script
 - `assets/` - Sample audio files directory
 - `dist/` - Generated transcriptions output
 
@@ -12,13 +15,10 @@
 # Audio processing dependencies
 brew install ffmpeg  # macOS
 sudo apt install ffmpeg  # Linux
+# Windows: Automatically installed by activate.ps1
 
-# Python packages
-torch>=2.0.1
-transformers>=4.37.0
-soundfile>=0.12.1
-librosa>=0.10.0
-datasets>=2.14.0
+# Environment setup
+.\activate.ps1  # Windows PowerShell setup
 ```
 
 ## Key Features
@@ -27,8 +27,10 @@ datasets>=2.14.0
   - Whisper large-v3-turbo model
   - Automatic audio resampling (16kHz)
   - Stereo-to-mono conversion
-  - GPU acceleration support
+  - GPU acceleration support (CUDA)
   - Batch processing capabilities
+  - Real-time progress tracking
+  - AI-powered text organization
 
 ## Command Reference
 
@@ -51,53 +53,57 @@ python run.py --audio assets/lectures/*.mp3 --output university/lectures/
 # Force CPU usage
 python run.py --audio input.mp3 --device cpu
 
-# High-precision mode (FP32)
-python run.py --audio input.mp3 --precision float32
-
-# Long-form audio processing
-python run.py --audio long_recording.mp3 --chunk_length 30
+# Force GPU usage
+python run.py --audio input.mp3 --device gpu
 ```
 
 ## Command Arguments
 
-| Argument       | Description                   | Example Value      | Notes                            |
-| -------------- | ----------------------------- | ------------------ | -------------------------------- |
-| --audio        | Input audio file path/pattern | \*.mp3             | Supports common audio formats    |
-| --output       | Custom output path            | results/output.txt | Relative to dist directory       |
-| --device       | Processing device             | cuda/cpu           | Auto-detects GPU by default      |
-| --precision    | Computation precision         | float16/float32    | float16 for faster GPU inference |
-| --chunk_length | Audio chunk length (seconds)  | 30                 | For long audio processing        |
+| Argument | Description               | Example Value      | Notes                       |
+|----------|---------------------------|-------------------|----------------------------|
+| --audio  | Input audio file path    | *.mp3            | Supports common formats    |
+| --output | Custom output path       | results/output.txt| Relative to dist directory|
+| --device | Processing device        | cpu/gpu          | Auto-detects GPU by default|
 
 ## Output Files
 
-| File Pattern     | Description                   |
-| ---------------- | ----------------------------- |
-| {input_name}.txt | Transcribed text output       |
-| processing.log   | Transcription metrics         |
-| error_logs.txt   | Failed transcription attempts |
+| File Pattern           | Description                 |
+|-----------------------|----------------------------|
+| {input_name}_raw.txt  | Raw transcription output   |
+| {input_name}_organized.txt | AI-processed text (optional) |
+
+## AI Text Processing
+
+The module includes an AI-powered text processor that:
+- Organizes content into thematic sections
+- Adds markdown formatting
+- Creates topic flowcharts
+- Corrects grammar and typos
+- Highlights technical terms
+- Requires OpenRouter API key (set via OPENROUTER_API_KEY)
 
 ## Error Handling
 
-- FFmpeg installation issues
-- Audio file corruption
-- CUDA out-of-memory errors
-- Audio resampling failures
-- Model loading errors
+- FFmpeg installation verification
+- CUDA/GPU availability checks
+- Automatic PyTorch CUDA installation
+- Audio processing error recovery
+- AI processing fallback options
 
-## Performance Monitoring
+## Performance Features
 
-- Real-time transcription progress
-- GPU memory utilization
-- Audio processing latency
-- Model inference speed
+- Real-time progress tracking
+- GPU memory optimization
+- Automatic device selection
+- Batch processing support
+- Progress visualization
 
 ## Future Improvements
 
-- [ ] Real-time microphone input support
-- [ ] Speaker diarization capabilities
-- [ ] Automated punctuation correction
+- [ ] Real-time microphone input
+- [ ] Speaker diarization
 - [ ] Multi-language support toggle
-- [ ] Audio preprocessing optimization
-  - [ ] Noise reduction filters
+- [ ] Audio preprocessing filters
+  - [ ] Noise reduction
   - [ ] Voice activity detection
   - [ ] Automatic gain control
