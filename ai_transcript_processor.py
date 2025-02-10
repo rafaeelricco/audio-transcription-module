@@ -33,20 +33,26 @@ def process_text(input_text, model="qwen/qwen2.5-vl-72b-instruct:free"):
         )
 
         prompt = f"""
-        Instructions:
+        # Text Processing Instructions
 
-        1. Divide the text into thematic sections based on discussed content.
-        2. Identify and highlight main topics.
-        3. Organize text into clear, short paragraphs, avoiding long text blocks.
-        4. Remove repetitions and unnecessary phrases, keeping only relevant content.
-        5. Add titles and subtitles for each section using markdown formatting.
-        6. Highlight technical or important terms using bold.
-        7. Maintain natural language but correct grammatical errors or confusing phrases.
-        8. Include examples or lists when needed to improve clarity.
-        9. Create a Mermaid flowchart representing the logical sequence of main topics and their relationships.
-           - Use nodes to represent main topics
-           - Use arrows to show relationships between topics
-           - Include brief descriptions in connections when relevant
+        ## Content Organization
+        - Divide the text into thematic sections based on discussed content
+        - Organize text into clear, short paragraphs, avoiding long text blocks
+        - Remove repetitions and unnecessary phrases
+        - Add titles and subtitles using markdown formatting
+
+        ## Content Enhancement
+        - Identify and highlight main topics
+        - Highlight technical or important terms using bold
+        - Correct grammatical errors and confusing phrases
+        - Add examples or lists where needed for clarity
+        - Fix typos based on context (e.g., "Macron" -> "Crown")
+
+        ## Visual Representation
+        Create a Mermaid flowchart showing:
+        - Main topics as nodes
+        - Relationships between topics using arrows
+        - Brief descriptions on connections where relevant
 
         Text to process:
         {input_text}
