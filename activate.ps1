@@ -21,7 +21,10 @@ The script is designed to work on Windows through PowerShell and manage
 project dependencies via pip.
 #>
 
-$pythonCommand = if (Get-Command python -ErrorAction SilentlyContinue) { "python" } elseif (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { $null }
+$pythonCommand = if (Get-Command python -ErrorAction SilentlyContinue) { "python" } 
+    elseif (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" }
+    elseif (Get-Command py -ErrorAction SilentlyContinue) { "py" }
+    else { $null }
 
 if (-not $pythonCommand) {
     Write-Host "Python not found. Install Python first."
