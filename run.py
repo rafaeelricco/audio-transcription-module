@@ -212,18 +212,15 @@ def check_and_install_cuda():
                     "-m",
                     "pip",
                     "install",
+                    "--force-reinstall",
                     "torch",
                     "torchvision",
                     "torchaudio",
                     "--index-url",
                     "https://download.pytorch.org/whl/cu121"
                 ]
-
-            # Clean uninstall first
-            subprocess.run([sys.executable, "-m", "pip", "uninstall", "torch", "torchvision", "torchaudio", "-y"], check=True)
-            subprocess.run([sys.executable, "-m", "pip", "cache", "purge"], check=True)
             
-            # Install with platform-specific command
+            # Try reinstalling directly without uninstalling first
             subprocess.run(torch_command, check=True)
             
             print("\n✓ PyTorch reinstalled with CUDA support")
