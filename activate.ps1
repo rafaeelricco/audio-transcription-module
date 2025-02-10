@@ -49,10 +49,17 @@ if (Test-Path $activateScript) {
 
 if (Test-Path "requirements.txt") {
     Write-Host "Installing dependencies..."
-    pip install -r requirements.txt
+    pip install numpy --only-binary :all:
     
-    Write-Host "`nInstalling PyTorch with CUDA support..."
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    pip install --ignore-installed -r requirements.txt
+
+    Write-Host "`nInstalling PyTorch..."
+    pip install torch torchvision torchaudio
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Attempting to upgrade to CUDA version..."
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --upgrade
+    }
 } else {
     Write-Host "Warning: requirements.txt not found"
 }
