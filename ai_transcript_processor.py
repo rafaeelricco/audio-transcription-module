@@ -5,14 +5,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def process_text(input_text, model="anthropic/claude-3.5-sonnet"):
+def process_text(input_text, model="qwen/qwen2.5-vl-72b-instruct:free"):
     """
-    Processa texto usando um modelo via OpenRouter
+    Process text using an AI model via OpenRouter API.
+    
+    Args:
+        input_text (str): The text to be processed
+        model (str): The AI model to use for processing
+        
+    Returns:
+        str: Processed text or None if an error occurs
+        
+    Raises:
+        dict: Error information containing 'type' and 'message'
     """
     try:
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            raise ValueError("Variável de ambiente OPENROUTER_API_KEY não encontrada")
+            raise ValueError({
+                "type": "Configuration Error",
+                "message": "OPENROUTER_API_KEY environment variable not found"
+            })
 
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -20,22 +33,22 @@ def process_text(input_text, model="anthropic/claude-3.5-sonnet"):
         )
 
         prompt = f"""
-        Instruções:
+        Instructions:
 
-        1. Divida o texto em seções temáticas com base no conteúdo discutido.
-        2. Identifique e destaque os tópicos principais.
-        3. Organize o texto em parágrafos curtos e claros, evitando blocos de texto longos.
-        4. Remova repetições e frases desnecessárias, mantendo apenas o conteúdo relevante.
-        5. Adicione títulos e subtítulos para cada seção, utilizando formatação em markdown.
-        6. Destaque termos técnicos ou importantes usando negrito.
-        7. Mantenha a linguagem natural, mas corrija erros gramaticais ou frases confusas.
-        8. Inclua exemplos ou listas quando necessário para melhorar a clareza.
-        9. Crie um fluxograma usando a sintaxe Mermaid que represente a sequência lógica dos principais tópicos e suas relações.
-           - Use nós para representar os tópicos principais
-           - Use setas para mostrar a relação entre os tópicos
-           - Inclua breves descrições nas conexões quando relevante
+        1. Divide the text into thematic sections based on discussed content.
+        2. Identify and highlight main topics.
+        3. Organize text into clear, short paragraphs, avoiding long text blocks.
+        4. Remove repetitions and unnecessary phrases, keeping only relevant content.
+        5. Add titles and subtitles for each section using markdown formatting.
+        6. Highlight technical or important terms using bold.
+        7. Maintain natural language but correct grammatical errors or confusing phrases.
+        8. Include examples or lists when needed to improve clarity.
+        9. Create a Mermaid flowchart representing the logical sequence of main topics and their relationships.
+           - Use nodes to represent main topics
+           - Use arrows to show relationships between topics
+           - Include brief descriptions in connections when relevant
 
-        Texto a ser processado:
+        Text to process:
         {input_text}
         """
 
@@ -44,10 +57,18 @@ def process_text(input_text, model="anthropic/claude-3.5-sonnet"):
         )
 
         if not completion or not completion.choices or len(completion.choices) == 0:
-            raise ValueError("Resposta inválida da API do OpenRouter")
+            raise ValueError({
+                "type": "API Error",
+                "message": "Invalid response from OpenRouter API"
+            })
 
         return completion.choices[0].message.content
 
     except Exception as e:
-        print(f"Erro ao processar texto com OpenRouter: {str(e)}")
-        return None
+        if hasattr(e, 'args') and isinstance(e.args[0], dict):
+            raise type(e)(e.args[0])
+        else:
+            raise ValueError({
+                "type": "Processing Error",
+                "message": f"Error processing text with OpenRouter: {str(e)}"
+            })

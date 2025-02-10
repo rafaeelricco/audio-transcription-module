@@ -103,10 +103,17 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
             from ai_transcript_processor import process_text
             try:
-                organized_text = process_text(result["text"], model="deepseek/deepseek-r1:free")
+                organized_text = process_text(result["text"])
                 ai_success = True
-            except Exception as ai_error:
-                print(f"\n✗ AI processing error: {str(ai_error)}")
+            except Exception as e:
+                error_info = e.args[0] if hasattr(e, 'args') and isinstance(e.args[0], dict) else {
+                    "type": "Unknown Error",
+                    "message": str(e)
+                }
+                print(f"\n❌ AI Processing Failed")
+                print(f"Type: {error_info['type']}")
+                print(f"Message: {error_info['message']}")
+                print("\nFalling back to raw transcription only.")
                 organized_text = None
                 ai_success = False
             
