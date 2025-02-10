@@ -13,3 +13,4 @@ performance
 assets
 dist
 __pycache__
+ffmpeg
