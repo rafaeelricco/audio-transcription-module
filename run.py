@@ -189,20 +189,42 @@ def check_and_install_cuda():
         print("\n⚠️ GPU not detected. Attempting to reinstall PyTorch with CUDA support...")
         try:
             import subprocess
+            import platform
 
+            # Add platform-specific PyTorch installation command
+            if platform.system() == "Windows":
+                torch_command = [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--force-reinstall",
+                    "torch",
+                    "torchvision",
+                    "torchaudio",
+                    "--index-url",
+                    "https://download.pytorch.org/whl/cu121",
+                    "--no-cache-dir"
+                ]
+            else:
+                torch_command = [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "torch",
+                    "torchvision",
+                    "torchaudio",
+                    "--index-url",
+                    "https://download.pytorch.org/whl/cu121"
+                ]
+
+            # Clean uninstall first
             subprocess.run([sys.executable, "-m", "pip", "uninstall", "torch", "torchvision", "torchaudio", "-y"], check=True)
             subprocess.run([sys.executable, "-m", "pip", "cache", "purge"], check=True)
-            subprocess.run([
-                sys.executable, 
-                "-m", 
-                "pip", 
-                "install", 
-                "torch", 
-                "torchvision", 
-                "torchaudio", 
-                "--index-url", 
-                "https://download.pytorch.org/whl/cu121"
-            ], check=True)
+            
+            # Install with platform-specific command
+            subprocess.run(torch_command, check=True)
             
             print("\n✓ PyTorch reinstalled with CUDA support")
             print("🔄 Please restart the script to apply changes")
