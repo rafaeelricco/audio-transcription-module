@@ -49,9 +49,14 @@ if (Test-Path $activateScript) {
 
 if (Test-Path "requirements.txt") {
     Write-Host "Installing dependencies..."
-    pip install numpy --only-binary :all:
+    pip install numpy==1.24.3 --only-binary :all:
     
-    pip install --ignore-installed -r requirements.txt
+    $requirements = Get-Content requirements.txt | Where-Object { $_ -notmatch "numpy" }
+    $requirements | Set-Content requirements.txt.temp
+    
+    pip install --ignore-installed -r requirements.txt.temp
+    
+    Remove-Item requirements.txt.temp
 
     Write-Host "`nInstalling PyTorch..."
     pip install torch torchvision torchaudio
