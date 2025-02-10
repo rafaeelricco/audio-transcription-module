@@ -49,7 +49,7 @@ if (Test-Path $activateScript) {
 
 if (Test-Path "requirements.txt") {
     Write-Host "Installing dependencies..."
-    pip install numpy==1.24.3 --only-binary :all:
+    pip install numpy==2.1.3 --only-binary :all:
     
     $requirements = Get-Content requirements.txt | Where-Object { $_ -notmatch "numpy" }
     $requirements | Set-Content requirements.txt.temp
