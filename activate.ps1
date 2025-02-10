@@ -23,7 +23,7 @@ project dependencies via pip.
 
 $pythonCommand = if (Get-Command python -ErrorAction SilentlyContinue) { "python" } 
     elseif (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" }
-    elseif (Get-Command py -ErrorAction SilentlyContinue) { "py" }
+    elseif (Get-Command py -ErrorAction SilentlyContinue) { "py -3" }
     else { $null }
 
 if (-not $pythonCommand) {
