@@ -173,6 +173,39 @@ def check_ffmpeg_installation():
         sys.exit(1)
 
 
+def check_and_install_cuda():
+    """
+    Checks CUDA support and installs PyTorch with CUDA if needed.
+    Returns True if CUDA is available or installation was successful.
+    """
+    if not torch.cuda.is_available():
+        print("\n⚠️ GPU not detected. Attempting to reinstall PyTorch with CUDA support...")
+        try:
+            import subprocess
+
+            subprocess.run([sys.executable, "-m", "pip", "uninstall", "torch", "torchvision", "torchaudio", "-y"], check=True)
+            subprocess.run([sys.executable, "-m", "pip", "cache", "purge"], check=True)
+            subprocess.run([
+                sys.executable, 
+                "-m", 
+                "pip", 
+                "install", 
+                "torch", 
+                "torchvision", 
+                "torchaudio", 
+                "--index-url", 
+                "https://download.pytorch.org/whl/cu121"
+            ], check=True)
+            
+            print("\n✓ PyTorch reinstalled with CUDA support")
+            print("🔄 Please restart the script to apply changes")
+            sys.exit(0)
+        except subprocess.CalledProcessError as e:
+            print(f"\n✗ Error installing PyTorch: {str(e)}")
+            return False
+    return True
+
+
 def main():
     """Main transcription execution flow"""
     print("\nPyTorch CUDA Diagnostics:")
@@ -184,11 +217,12 @@ def main():
         print(f"CUDA version: {torch.version.cuda}")
         print(f"cuDNN version: {torch.backends.cudnn.version()}")
     else:
-        print("\n⚠️ Atenção: PyTorch não está detectando a GPU. Verifique se:")
-        print("1. O PyTorch foi instalado com suporte a CUDA")
-        print("2. A versão do CUDA é compatível com seus drivers")
-        print("\nPara instalar o PyTorch com suporte a CUDA 12.1, execute:")
-        print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+        if not check_and_install_cuda():
+            print("\n⚠️ Warning: PyTorch is not detecting the GPU. Please verify:")
+            print("1. PyTorch is installed with CUDA support")
+            print("2. CUDA version is compatible with your drivers")
+            print("\nTo install PyTorch with CUDA 12.1 support, run:")
+            print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
     
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument("--audio", required=True, help="Input audio file(s)")
