@@ -138,7 +138,6 @@ def _process_single_file(input_path, output_path, device, torch_dtype, progress)
             ai_success = False
 
         progress.update(f"AI processing done: {filename}", 100)
-        progress.simulate_progress(f"Saving {filename}...", start_from=0, until=90)
         
         if output_path:
             if os.path.isdir(output_path):
@@ -162,13 +161,11 @@ def _process_single_file(input_path, output_path, device, torch_dtype, progress)
             with open(organized_path, "w", encoding="utf-8") as f:
                 f.write(organized_text)
             print(f"\n✓ Raw transcription saved to: {raw_path}")
-            print(f"✓ Organized transcription saved to: {organized_path}")
+            print(f"✓ Organized transcription saved to: {organized_path}\n")
         else:
             print(f"\n✓ Raw transcription saved to: {raw_path}")
             print("✗ Organized version not saved due to processing errors")
             return False
-
-        progress.update("Saving transcription", 100)
         return True
 
     except Exception as e:
