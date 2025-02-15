@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def process_text(input_text, model="deepseek/deepseek-r1:free"):
+def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:free"):
     """
     Process text using an AI model via OpenRouter API.
     

@@ -117,7 +117,6 @@ def _process_single_file(input_path, output_path, device, torch_dtype, progress)
         result = pipe(input_path, generate_kwargs=generate_kwargs)
         progress.update(f"Transcription complete {filename}", 100)
 
-        progress.simulate_progress(f"Processing {filename} with AI...", start_from=0, until=90)
         from ai_transcript_processor import process_text
         try:
             organized_text = process_text(result["text"])
