@@ -55,8 +55,8 @@ def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:f
         ## Stylistic Guidelines
         - Format code blocks with syntax highlighting (specify language)
         - Use consistent typography:
-          * Technical terms in bold
-          * Important concepts in italics
+          * Technical terms in **bold**
+          * Important concepts in *italics*
           * Key quotes in blockquotes
         - Apply conditional formatting:
           ✅ Correct statements in green
@@ -75,6 +75,10 @@ def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:f
         - Validate all external links/resources
         - Preserve context while removing redundancies
 
+        ## Output Format
+        - Return the entire response in valid Markdown format.
+        - Use appropriate Markdown syntax for headings, lists, code blocks, and other text elements.
+        
         Text to process:
         {input_text}
         """
