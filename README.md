@@ -21,6 +21,15 @@ sudo apt install ffmpeg  # Linux
 .\activate.ps1  # Windows PowerShell setup
 ```
 
+## Supported Formats
+**Audio Formats**  
+MP3, WAV, FLAC, OGG, AAC, M4A  
+
+**Video Formats**  
+MP4, MOV, AVI, MKV, WMV  
+
+*Note: All video files will have audio automatically extracted*
+
 ## Key Features
 
 - **Advanced Audio Transcription**
@@ -31,6 +40,11 @@ sudo apt install ffmpeg  # Linux
   - Batch processing capabilities
   - Real-time progress tracking
   - AI-powered text organization
+- **Extended Format Support**
+  - 15+ audio/video formats supported
+  - Automatic format conversion
+  - Embedded audio extraction from video files
+  - Variable bitrate handling
 
 ## Command Reference
 
@@ -47,6 +61,18 @@ python run.py --audio assets/interview.mp3 --output transcripts/interview.txt
 python run.py --audio assets/lectures/*.mp3 --output university/lectures/
 ```
 
+### Enhanced Basic Usage
+```bash
+# Transcribe video files
+python run.py --audio assets/presentation.mp4
+
+# Multiple file types in batch
+python run.py --audio inputs/*.mp3 inputs/*.mov
+
+# Directory processing 
+python run.py --audio recordings/2024-07/ --output processed_transcripts/
+```
+
 ### Advanced Options
 
 ```bash
@@ -57,13 +83,26 @@ python run.py --audio input.mp3 --device cpu
 python run.py --audio input.mp3 --device gpu
 ```
 
-## Command Arguments
+### New Advanced Options
+```bash
+# Specify transcript language
+python run.py --audio interview.mp3 --language spanish
 
-| Argument | Description               | Example Value      | Notes                       |
-|----------|---------------------------|-------------------|----------------------------|
-| --audio  | Input audio file path    | *.mp3            | Supports common formats    |
-| --output | Custom output path       | results/output.txt| Relative to dist directory|
-| --device | Processing device        | cpu/gpu          | Auto-detects GPU by default|
+# Set minimum confidence threshold (0.1-1.0)
+python run.py --audio lecture.mp3 --confidence 0.8
+
+# Process while keeping original timestamps
+python run.py --audio meeting.mp3 --keep-timestamps
+```
+
+## Updated Command Arguments
+| Argument       | Description               | Example Values       |
+|----------------|---------------------------|----------------------|
+| --audio        | Input path(s)             | *.mp3, *.mp4, dir/  |
+| --output       | Custom output path       | results/final.txt   |
+| --device       | Processing device        | cpu/gpu             |
+| --language     | Transcription language    | english, japanese   | 
+| --confidence   | Minimum confidence       | 0.5 (50% confidence)|
 
 ## Output Files
 
@@ -81,6 +120,12 @@ The module includes an AI-powered text processor that:
 - Corrects grammar and typos
 - Highlights technical terms
 - Requires OpenRouter API key (set via OPENROUTER_API_KEY)
+- Uses Claude 3.5 Sonnet as default model
+- Supports custom processing templates
+- Generates interactive HTML reports
+- Adds automatic section numbering
+- Creates summary bullet points
+- Formats code blocks properly
 
 ## Error Handling
 
@@ -97,6 +142,11 @@ The module includes an AI-powered text processor that:
 - Automatic device selection
 - Batch processing support
 - Progress visualization
+- Automatic format detection
+- Parallel file processing
+- Smart memory management
+- Failed file retry system
+- Output validation checks
 
 ## Future Improvements
 
