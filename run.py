@@ -32,18 +32,41 @@ from argparse import ArgumentParser
 import warnings
 from transformers import logging as transformers_logging
 from ui import ProgressBar
+import glob
 
 
-def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None, model="anthropic/claude-3.5-sonnet"):
+def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
     """
-    Transcribe audio file to text using Whisper large-v3-turbo model.
+    Transcribe audio file(s) to text using Whisper large-v3-turbo model.
+    Handles both single files and batch processing.
     """
     warnings.filterwarnings("ignore", category=FutureWarning)
     transformers_logging.set_verbosity_error()
     progress = ProgressBar()
 
     try:
-        progress.simulate_progress("Loading model...", start_from=0, until=40)
+        # Handle multiple input files
+        if isinstance(input_path, list):
+            results = []
+            for idx, file_path in enumerate(input_path, 1):
+                print(f"\nProcessing file {idx}/{len(input_path)}: {os.path.basename(file_path)}")
+                result = _process_single_file(file_path, output_path, device, torch_dtype, progress)
+                results.append(result)
+            return all(results)
+            
+        return _process_single_file(input_path, output_path, device, torch_dtype, progress)
+
+    except Exception as e:
+        print(f"\n✗ Transcription error: {str(e)}")
+        return False
+
+def _process_single_file(input_path, output_path, device, torch_dtype, progress):
+    """Handle processing for a single audio file"""
+    try:
+        filename = os.path.basename(input_path)
+        progress.reset()  # Reset progress for new file
+        
+        progress.simulate_progress(f"Loading model for {filename}...", start_from=0, until=40)
 
         os.makedirs("dist", exist_ok=True)
 
@@ -64,9 +87,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         model.to(device)
 
         processor = AutoProcessor.from_pretrained(model_id)
-        progress.update("Loading model", 100)
+        progress.update(f"Model loaded for {filename}", 100)
 
-        progress.simulate_progress("Initializing pipeline...", start_from=0, until=70)
+        progress.simulate_progress(f"Initializing pipeline for {filename}...", start_from=0, until=70)
         pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -77,9 +100,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             torch_dtype=torch_dtype,
             device=device,
         )
-        progress.update("Initializing pipeline", 100)
+        progress.update(f"Pipeline ready for {filename}", 100)
 
-        progress.simulate_progress("Transcribing audio...", start_from=0, until=90)
+        progress.simulate_progress(f"Transcribing {filename}...", start_from=0, until=90)
         generate_kwargs = {
             "task": "transcribe",
             "language": "portuguese",
@@ -92,9 +115,9 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         }
 
         result = pipe(input_path, generate_kwargs=generate_kwargs)
-        progress.update("Transcribing audio", 100)
+        progress.update(f"Transcription complete {filename}", 100)
 
-        progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
+        progress.simulate_progress(f"Processing {filename} with AI...", start_from=0, until=90)
         from ai_transcript_processor import process_text
         try:
             organized_text = process_text(result["text"])
@@ -104,7 +127,7 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
                 "type": "Unknown Error",
                 "message": str(e)
             }
-            print(f"\n❌ AI Processing Failed")
+            print(f"\n✗ AI Processing Failed")
             print(f"Type: {error_info['type']}")
             print(f"Message: {error_info['message']}")
             print("\nFalling back to raw transcription only.")
@@ -115,19 +138,21 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
             print("AI processing failed. Only raw transcription will be saved.")
             ai_success = False
 
-        progress.update("Processing text with AI", 100)
-
-        progress.simulate_progress("Saving transcription...", start_from=0, until=90)
+        progress.update(f"AI processing done: {filename}", 100)
+        progress.simulate_progress(f"Saving {filename}...", start_from=0, until=90)
         
         if output_path:
-            base_output_path = os.path.join("dist", output_path)
-            output_dir = os.path.dirname(base_output_path)
+            if os.path.isdir(output_path):
+                base_name = os.path.splitext(os.path.basename(input_path))[0]
+                base_output_path = os.path.join(output_path, base_name)
+            else:
+                base_output_path = output_path
         else:
             base_name = os.path.splitext(os.path.basename(input_path))[0]
             output_dir = os.path.join("dist", base_name)
-            base_output_path = os.path.join(output_dir, f"{base_name}")
+            base_output_path = os.path.join(output_dir, base_name)
 
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(base_output_path), exist_ok=True)
 
         raw_path = f"{base_output_path}_raw.txt"
         with open(raw_path, "w", encoding="utf-8") as f:
@@ -205,14 +230,27 @@ def main():
             print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
     
     parser = ArgumentParser(description="Audio transcription processor")
-    parser.add_argument("--audio", required=True, help="Input audio file(s)")
-    parser.add_argument("--output", help="Output path (relative to dist directory)")
+    parser.add_argument("--audio", required=True, nargs='+', help="Input audio file(s) or patterns")
+    parser.add_argument("--output", help="Output path (file or directory)")
     parser.add_argument(
         "--device", choices=["cpu", "gpu"], help="Specify processing device (cpu/gpu)"
     )
     args = parser.parse_args()
 
     check_ffmpeg_installation()
+
+    # Handle file patterns and multiple inputs
+    expanded_files = []
+    for pattern in args.audio:
+        expanded_files.extend(glob.glob(pattern, recursive=True))
+    
+    if not expanded_files:
+        print("\n❌ No audio files found matching the provided patterns")
+        sys.exit(1)
+
+    print(f"\nFound {len(expanded_files)} files to process:")
+    for f in expanded_files:
+        print(f" - {f}")
 
     use_gpu = False
 
@@ -239,7 +277,7 @@ def main():
                 print("GPU not available, falling back to CPU ⚠️")
 
     success = transcribe_audio(
-        args.audio,
+        expanded_files,  # Now passing list of files instead of single path
         args.output,
         device="cuda" if use_gpu else "cpu",
         torch_dtype=torch.float16 if use_gpu else torch.float32,

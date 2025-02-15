@@ -99,3 +99,14 @@ class ProgressBar:
         """Wait for any ongoing simulated progress to complete."""
         if self._current_thread and self._current_thread.is_alive():
             self._current_thread.join()
+
+    def reset(self):
+        """Reset progress state for new file processing"""
+        self.current_step = ""
+        self.progress = 0
+        self._stop_fake_progress = False
+        self._is_running_fake = False
+        self._step_printed = False
+        if self._current_thread and self._current_thread.is_alive():
+            self._stop_fake_progress = True
+            self._current_thread.join()

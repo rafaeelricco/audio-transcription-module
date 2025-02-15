@@ -16,6 +16,10 @@ sudo apt install ffmpeg  # Linux
 
 # Environment setup
 .\activate.ps1  # Windows PowerShell setup
+
+# For YouTube video downloads:
+# Recommended: Use YouTube Video Downloader (@https://transkriptor.com/pt-br/downloader-de-video-do-youtube/)
+# Ensure compliance with copyright laws when using third-party content
 ```
 
 ## Supported Formats
