@@ -1,7 +1,4 @@
-# Audio Transcription Module
-
-### Audio Transcription Module (`/audio_transcription`)
-
+### Project Structure
 - `run.py` - Main transcription executor
 - `ai_transcript_processor.py` - AI-powered text organization
 - `ui.py` - Progress tracking interface
