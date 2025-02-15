@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def process_text(input_text, model="qwen/qwen2.5-vl-72b-instruct:free"):
+def process_text(input_text, model="deepseek/deepseek-r1:free"):
     """
     Process text using an AI model via OpenRouter API.
     
@@ -34,40 +34,63 @@ def process_text(input_text, model="qwen/qwen2.5-vl-72b-instruct:free"):
 
         prompt = f"""
         # Text Processing Instructions
+        
+        ## Structural Requirements
+        - Create hierarchical document structure with collapsible sections
+        - Implement automatic section numbering (1.1, 1.2, 2.1, etc.)
+        - Generate topic flowcharts using Mermaid.js syntax
+        - Add table of contents with anchor links
+        - Include progress tracking milestones
+        - Maintain original timestamps as metadata
 
         ## Content Organization
-        - Divide the text into thematic sections based on discussed content
-        - Organize text into clear, short paragraphs, avoiding long text blocks
-        - Remove repetitions and unnecessary phrases
-        - Add titles and subtitles using markdown formatting
+        1. Divide content into thematic sections with clear headings
+        2. Create summary bullet points for each main topic
+        3. Organize technical content in expandable/collapsible blocks
+        4. Separate main content from auxiliary information using side notes
+        5. Implement responsive layout considerations for HTML output
 
-        ## Content Enhancement
-        - Identify and highlight main topics
-        - Highlight technical or important terms using bold
-        - Correct grammatical errors and confusing phrases
-        - Add examples or lists where needed for clarity
-        - Fix typos based on context (e.g., "Macron" -> "Crown")
+        ## Stylistic Guidelines
+        - Format code blocks with syntax highlighting (specify language)
+        - Use consistent typography:
+          * Technical terms in bold
+          * Important concepts in italics
+          * Key quotes in blockquotes
+        - Apply conditional formatting:
+          ✅ Correct statements in green
+          ⚠️ Uncertain elements in orange
+          ❌ Contradictions in red
+        - Add interactive elements for HTML reports:
+          * Clickable section headers
+          * Searchable term index
+          * Dynamic content filtering
 
-        ## Visual Representation
-        Create a Mermaid flowchart showing:
-        - Main topics as nodes
-        - Relationships between topics using arrows
-        - Brief descriptions on connections where relevant
+        ## Quality Assurance
+        - Verify technical term consistency
+        - Cross-check referenced sources
+        - Maintain original content meaning
+        - Ensure logical flow between sections
+        - Validate all external links/resources
+        - Preserve context while removing redundancies
 
         Text to process:
         {input_text}
         """
 
+        print("✓ Sending request to AI model...")
         completion = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": prompt}]
         )
+        print("✓ Request confirmed by API")
 
+        print("… Processing AI response...")
         if not completion or not completion.choices or len(completion.choices) == 0:
             raise ValueError({
                 "type": "API Error",
                 "message": "Invalid response from OpenRouter API"
             })
 
+        print("✓ Processing completed")
         return completion.choices[0].message.content
 
     except Exception as e:

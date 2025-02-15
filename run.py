@@ -200,7 +200,7 @@ def check_and_install_cuda():
     Returns True if CUDA is available or installation was successful.
     """
     if not torch.cuda.is_available():
-        print("\n⚠️ GPU not detected. Por favor execute:")
+        print("\n! GPU not detected. Por favor execute:")
         print("1. Feche todos os programas Python")
         print("2. Execute o prompt de comando como Administrador")
         print("3. Execute o comando abaixo:")
@@ -215,7 +215,7 @@ def main():
     """Main transcription execution flow"""
     print("\nPyTorch CUDA Diagnostics:")
     print(f"PyTorch version: {torch.__version__}")
-    print(f"CUDA available: {torch.cuda.is_available()}")
+    print(f"CUDA available: {'Yes' if torch.cuda.is_available() else 'No'}")
     if torch.cuda.is_available():
         print(f"Current device: {torch.cuda.current_device()}")
         print(f"Device name: {torch.cuda.get_device_name()}")
@@ -223,7 +223,7 @@ def main():
         print(f"cuDNN version: {torch.backends.cudnn.version()}")
     else:
         if not check_and_install_cuda():
-            print("\n⚠️ Warning: PyTorch is not detecting the GPU. Please verify:")
+            print("\n! Warning: PyTorch is not detecting the GPU. Please verify:")
             print("1. PyTorch is installed with CUDA support")
             print("2. CUDA version is compatible with your drivers")
             print("\nTo install PyTorch with CUDA 12.1 support, run:")
@@ -258,9 +258,9 @@ def main():
         if args.device == "gpu":
             if torch.cuda.is_available():
                 use_gpu = True
-                print("Using GPU acceleration 🚀")
+                print("Using GPU acceleration ✓")
             else:
-                print("GPU not available, falling back to CPU ⚠️")
+                print("GPU not available, falling back to CPU ✗")
         else:
             print("Using CPU for processing")
     else:
@@ -272,9 +272,9 @@ def main():
         if choice == "2":
             if torch.cuda.is_available():
                 use_gpu = True
-                print("Using GPU acceleration 🚀")
+                print("Using GPU acceleration ✓")
             else:
-                print("GPU not available, falling back to CPU ⚠️")
+                print("GPU not available, falling back to CPU ✗")
 
     success = transcribe_audio(
         expanded_files,  # Now passing list of files instead of single path

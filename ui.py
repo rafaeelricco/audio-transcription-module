@@ -54,10 +54,11 @@ class ProgressBar:
 
         if progress is not None:
             self.progress = min(100, max(0, progress))
-            filled_width = int(self.total_width * self.progress / 100)
-            empty_width = self.total_width - filled_width
-            bar = "#" * filled_width + "-" * empty_width
-            sys.stdout.write(f"\r{bar} {self.progress:.1f}%")
+            filled_width = int((self.total_width - 1) * self.progress / 100)
+            arrow = '=' * filled_width + '>'
+            empty = '-' * (self.total_width - filled_width - 1)
+            bar = f"{arrow}{empty}"
+            sys.stdout.write(f"\r{bar} {self.progress:6.1f}%")
             sys.stdout.flush()
 
             if self.progress == 100:
@@ -85,9 +86,9 @@ class ProgressBar:
         def fake_progress_worker():
             current_progress = start_from
             while not self._stop_fake_progress and current_progress < until:
-                time.sleep(random.uniform(0.5, 2))
+                time.sleep(random.uniform(0.1, 0.3))
                 if not self._stop_fake_progress:
-                    current_progress += random.uniform(0.5, 2)
+                    current_progress += random.uniform(0.5, 1.5)
                     self.update(step, current_progress)
             self._is_running_fake = False
 
