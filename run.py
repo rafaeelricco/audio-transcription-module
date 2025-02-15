@@ -235,7 +235,6 @@ def main():
 
     check_ffmpeg_installation()
 
-    # Handle file patterns and multiple inputs
     expanded_files = []
     for pattern in args.audio:
         expanded_files.extend(glob.glob(pattern, recursive=True))
@@ -248,29 +247,24 @@ def main():
     for f in expanded_files:
         print(f" - {f}")
 
-    use_gpu = False
-
     if args.device:
         if args.device == "gpu":
             if torch.cuda.is_available():
                 use_gpu = True
                 print("Using GPU acceleration ✓")
             else:
+                use_gpu = False
                 print("GPU not available, falling back to CPU ✗")
         else:
+            use_gpu = False
             print("Using CPU for processing")
     else:
-        print("\nSelect processing device:")
-        print("1. CPU (recommended if no NVIDIA GPU)")
-        print("2. GPU (faster but requires CUDA)")
-
-        choice = input("Your choice [1/2]: ").strip()
-        if choice == "2":
-            if torch.cuda.is_available():
-                use_gpu = True
-                print("Using GPU acceleration ✓")
-            else:
-                print("GPU not available, falling back to CPU ✗")
+        if torch.cuda.is_available():
+            use_gpu = True
+            print("\nCUDA detectado. Processamento com GPU ativado automaticamente.")
+        else:
+            use_gpu = False
+            print("\nCUDA não detectado. Processamento com CPU ativado.")
 
     success = transcribe_audio(
         expanded_files,  # Now passing list of files instead of single path
