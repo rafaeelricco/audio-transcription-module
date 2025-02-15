@@ -45,7 +45,6 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
     progress = ProgressBar()
 
     try:
-        # Handle multiple input files
         if isinstance(input_path, list):
             results = []
             for idx, file_path in enumerate(input_path, 1):
@@ -64,7 +63,7 @@ def _process_single_file(input_path, output_path, device, torch_dtype, progress)
     """Handle processing for a single audio file"""
     try:
         filename = os.path.basename(input_path)
-        progress.reset()  # Reset progress for new file
+        progress.reset()
         
         progress.simulate_progress(f"Loading model for {filename}...", start_from=0, until=40)
 
@@ -209,21 +208,6 @@ def check_and_install_cuda():
 
 def main():
     """Main transcription execution flow"""
-    print("\nPyTorch CUDA Diagnostics:")
-    print(f"PyTorch version: {torch.__version__}")
-    print(f"CUDA available: {'Yes' if torch.cuda.is_available() else 'No'}")
-    if torch.cuda.is_available():
-        print(f"Current device: {torch.cuda.current_device()}")
-        print(f"Device name: {torch.cuda.get_device_name()}")
-        print(f"CUDA version: {torch.version.cuda}")
-        print(f"cuDNN version: {torch.backends.cudnn.version()}")
-    else:
-        if not check_and_install_cuda():
-            print("\n! Warning: PyTorch is not detecting the GPU. Please verify:")
-            print("1. PyTorch is installed with CUDA support")
-            print("2. CUDA version is compatible with your drivers")
-            print("\nTo install PyTorch with CUDA 12.1 support, run:")
-            print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
     
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument("--audio", required=True, nargs='+', help="Input audio file(s) or patterns")
@@ -232,9 +216,32 @@ def main():
         "--device", choices=["cpu", "gpu"], help="Specify processing device (cpu/gpu)"
     )
     args = parser.parse_args()
-
+    
+    if args.device:
+        device_used = "cuda:0" if args.device == "gpu" else "cpu"
+    else:
+        device_used = "cuda:0" if torch.cuda.is_available() else "cpu"
+    
+    print("\nPyTorch CUDA Diagnostics:")
+    print(f" - CUDA available: {'Yes' if torch.cuda.is_available() else 'No'}")
+    print(f" - Device selected: {'GPU' if 'cuda' in device_used else 'CPU'}")
+    if torch.cuda.is_available():
+        print(f" - Current device: {torch.cuda.current_device()}")
+        print(f" - Device name: {torch.cuda.get_device_name()}")
+        print(f" - CUDA version: {torch.version.cuda}")
+        print(f" - cuDNN version: {torch.backends.cudnn.version()}")
+        print(f" - PyTorch version: {torch.__version__}")
+        print(f" - Python version: {sys.version}")
+    else:
+        if not check_and_install_cuda():
+            print("\n! Warning: PyTorch is not detecting the GPU. Please verify:")
+            print("1. PyTorch is installed with CUDA support")
+            print("2. CUDA version is compatible with your drivers")
+            print("\nTo install PyTorch with CUDA 12.1 support, run:")
+            print("pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
+    
     check_ffmpeg_installation()
-
+    
     expanded_files = []
     for pattern in args.audio:
         expanded_files.extend(glob.glob(pattern, recursive=True))
@@ -242,35 +249,16 @@ def main():
     if not expanded_files:
         print("\n❌ No audio files found matching the provided patterns")
         sys.exit(1)
-
+    
     print(f"\nFound {len(expanded_files)} files to process:")
     for f in expanded_files:
         print(f" - {f}")
-
-    if args.device:
-        if args.device == "gpu":
-            if torch.cuda.is_available():
-                use_gpu = True
-                print("Using GPU acceleration ✓")
-            else:
-                use_gpu = False
-                print("GPU not available, falling back to CPU ✗")
-        else:
-            use_gpu = False
-            print("Using CPU for processing")
-    else:
-        if torch.cuda.is_available():
-            use_gpu = True
-            print("\nCUDA detectado. Processamento com GPU ativado automaticamente.")
-        else:
-            use_gpu = False
-            print("\nCUDA não detectado. Processamento com CPU ativado.")
-
+    
     success = transcribe_audio(
-        expanded_files,  # Now passing list of files instead of single path
+        expanded_files,
         args.output,
-        device="cuda" if use_gpu else "cpu",
-        torch_dtype=torch.float16 if use_gpu else torch.float32,
+        device=device_used,
+        torch_dtype=torch.float16 if device_used == "gpu" else torch.float32,
     )
     sys.exit(0 if success else 1)
 
