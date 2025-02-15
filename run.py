@@ -94,34 +94,26 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         result = pipe(input_path, generate_kwargs=generate_kwargs)
         progress.update("Transcribing audio", 100)
 
-        print("\nTranscription complete. What would you like to do?")
-        print("1. Save raw transcription")
-        print("2. Process and organize text before saving")
-        choice = input("Your choice [1/2]: ").strip()
-
-        if choice == "2":
-            progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
-            from ai_transcript_processor import process_text
-            try:
-                organized_text = process_text(result["text"])
-                ai_success = True
-            except Exception as e:
-                error_info = e.args[0] if hasattr(e, 'args') and isinstance(e.args[0], dict) else {
-                    "type": "Unknown Error",
-                    "message": str(e)
-                }
-                print(f"\n❌ AI Processing Failed")
-                print(f"Type: {error_info['type']}")
-                print(f"Message: {error_info['message']}")
-                print("\nFalling back to raw transcription only.")
-                organized_text = None
-                ai_success = False
-            
-            if not organized_text:
-                print("AI processing failed. Only raw transcription will be saved.")
-                ai_success = False
-        else:
-            ai_success = True 
+        progress.simulate_progress("Processing text with AI...", start_from=0, until=90)
+        from ai_transcript_processor import process_text
+        try:
+            organized_text = process_text(result["text"])
+            ai_success = True
+        except Exception as e:
+            error_info = e.args[0] if hasattr(e, 'args') and isinstance(e.args[0], dict) else {
+                "type": "Unknown Error",
+                "message": str(e)
+            }
+            print(f"\n❌ AI Processing Failed")
+            print(f"Type: {error_info['type']}")
+            print(f"Message: {error_info['message']}")
+            print("\nFalling back to raw transcription only.")
+            organized_text = None
+            ai_success = False
+        
+        if not organized_text:
+            print("AI processing failed. Only raw transcription will be saved.")
+            ai_success = False
 
         progress.update("Processing text with AI", 100)
 
@@ -141,19 +133,16 @@ def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None
         with open(raw_path, "w", encoding="utf-8") as f:
             f.write(result["text"])
 
-        if choice == "2":
-            if ai_success:
-                organized_path = f"{base_output_path}_organized.txt"
-                with open(organized_path, "w", encoding="utf-8") as f:
-                    f.write(organized_text)
-                print(f"\n✓ Raw transcription saved to: {raw_path}")
-                print(f"✓ Organized transcription saved to: {organized_path}")
-            else:
-                print(f"\n✓ Raw transcription saved to: {raw_path}")
-                print("✗ Organized version not saved due to processing errors")
-                return False  # Indicate failure to main program
+        if ai_success:
+            organized_path = f"{base_output_path}_organized.txt"
+            with open(organized_path, "w", encoding="utf-8") as f:
+                f.write(organized_text)
+            print(f"\n✓ Raw transcription saved to: {raw_path}")
+            print(f"✓ Organized transcription saved to: {organized_path}")
         else:
-            print(f"\n✓ Transcription saved to: {raw_path}")
+            print(f"\n✓ Raw transcription saved to: {raw_path}")
+            print("✗ Organized version not saved due to processing errors")
+            return False
 
         progress.update("Saving transcription", 100)
         return True
