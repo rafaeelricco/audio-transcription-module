@@ -186,49 +186,14 @@ def check_and_install_cuda():
     Returns True if CUDA is available or installation was successful.
     """
     if not torch.cuda.is_available():
-        print("\n⚠️ GPU not detected. Attempting to reinstall PyTorch with CUDA support...")
-        try:
-            import subprocess
-            import platform
+        print("\n⚠️ GPU not detected. Por favor execute:")
+        print("1. Feche todos os programas Python")
+        print("2. Execute o prompt de comando como Administrador")
+        print("3. Execute o comando abaixo:")
+        print("\npip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --user")
+        print("\nDepois reinicie o script.")
+        return False
 
-            # Add platform-specific PyTorch installation command
-            if platform.system() == "Windows":
-                torch_command = [
-                    sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    "--force-reinstall",
-                    "torch",
-                    "torchvision",
-                    "torchaudio",
-                    "--index-url",
-                    "https://download.pytorch.org/whl/cu121",
-                    "--no-cache-dir"
-                ]
-            else:
-                torch_command = [
-                    sys.executable,
-                    "-m",
-                    "pip",
-                    "install",
-                    "--force-reinstall",
-                    "torch",
-                    "torchvision",
-                    "torchaudio",
-                    "--index-url",
-                    "https://download.pytorch.org/whl/cu121"
-                ]
-            
-            # Try reinstalling directly without uninstalling first
-            subprocess.run(torch_command, check=True)
-            
-            print("\n✓ PyTorch reinstalled with CUDA support")
-            print("🔄 Please restart the script to apply changes")
-            sys.exit(0)
-        except subprocess.CalledProcessError as e:
-            print(f"\n✗ Error installing PyTorch: {str(e)}")
-            return False
     return True
 
 
