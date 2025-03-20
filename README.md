@@ -1,10 +1,21 @@
 ### Project Structure
+
 - `run.py` - Main transcription executor
 - `ai_transcript_processor.py` - AI-powered text organization
 - `ui.py` - Progress tracking interface
 - `activate.ps1` - Environment setup script
 - `assets/` - Sample audio files directory
 - `dist/` - Generated transcriptions output
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+
+# For Windows using NVIDA CUDA
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+```
 
 ## Prerequisites
 
@@ -23,13 +34,14 @@ sudo apt install ffmpeg  # Linux
 ```
 
 ## Supported Formats
+
 **Audio Formats**  
-MP3, WAV, FLAC, OGG, AAC, M4A  
+MP3, WAV, FLAC, OGG, AAC, M4A
 
 **Video Formats**  
-MP4, MOV, AVI, MKV, WMV  
+MP4, MOV, AVI, MKV, WMV
 
-*Note: All video files will have audio automatically extracted*
+_Note: All video files will have audio automatically extracted_
 
 ## Key Features
 
@@ -63,6 +75,7 @@ python run.py --audio assets/lectures/*.mp3 --output university/lectures/
 ```
 
 ### Enhanced Basic Usage
+
 ```bash
 # Transcribe video files
 python run.py --audio assets/presentation.mp4
@@ -70,7 +83,7 @@ python run.py --audio assets/presentation.mp4
 # Multiple file types in batch
 python run.py --audio inputs/*.mp3 inputs/*.mov
 
-# Directory processing 
+# Directory processing
 python run.py --audio recordings/2024-07/ --output processed_transcripts/
 ```
 
@@ -85,6 +98,7 @@ python run.py --audio input.mp3 --device gpu
 ```
 
 ### New Advanced Options
+
 ```bash
 # Specify transcript language
 python run.py --audio interview.mp3 --language spanish
@@ -97,24 +111,26 @@ python run.py --audio meeting.mp3 --keep-timestamps
 ```
 
 ## Updated Command Arguments
-| Argument       | Description               | Example Values       |
-|----------------|---------------------------|----------------------|
-| --audio        | Input path(s)             | *.mp3, *.mp4, dir/  |
-| --output       | Custom output path       | results/final.txt   |
-| --device       | Processing device        | cpu/gpu             |
-| --language     | Transcription language    | english, japanese   | 
-| --confidence   | Minimum confidence       | 0.5 (50% confidence)|
+
+| Argument     | Description            | Example Values       |
+| ------------ | ---------------------- | -------------------- |
+| --audio      | Input path(s)          | _.mp3, _.mp4, dir/   |
+| --output     | Custom output path     | results/final.txt    |
+| --device     | Processing device      | cpu/gpu              |
+| --language   | Transcription language | english, japanese    |
+| --confidence | Minimum confidence     | 0.5 (50% confidence) |
 
 ## Output Files
 
-| File Pattern           | Description                 |
-|-----------------------|----------------------------|
-| {input_name}_raw.txt  | Raw transcription output   |
-| {input_name}_organized.txt | AI-processed text (optional) |
+| File Pattern                | Description                  |
+| --------------------------- | ---------------------------- |
+| {input_name}\_raw.txt       | Raw transcription output     |
+| {input_name}\_organized.txt | AI-processed text (optional) |
 
 ## AI Text Processing
 
 The module includes an AI-powered text processor that:
+
 - Organizes content into thematic sections
 - Adds markdown formatting
 - Creates topic flowcharts
