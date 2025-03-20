@@ -65,9 +65,9 @@ class ProgressBar:
 
             filled_len = int(bar_width * self.progress / 100)
             if filled_len >= bar_width:
-                bar = '=' * bar_width
+                bar = "=" * bar_width
             else:
-                bar = '=' * filled_len + '>' + '-' * (bar_width - filled_len - 1)
+                bar = "=" * filled_len + ">" + "-" * (bar_width - filled_len - 1)
 
             sys.stdout.write("\r" + " " * term_width + "\r")
             sys.stdout.write(f"{bar} {self.progress:6.1f}%")

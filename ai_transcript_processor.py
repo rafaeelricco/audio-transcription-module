@@ -7,27 +7,30 @@ load_dotenv()
 
 progress = ProgressBar()
 
-def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:free"):
+
+def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
     """
     Process text using an AI model via OpenRouter API.
-    
+
     Args:
         input_text (str): The text to be processed
         model (str): The AI model to use for processing
-        
+
     Returns:
         str: Processed text or None if an error occurs
-        
+
     Raises:
         dict: Error information containing 'type' and 'message'
     """
     try:
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            raise ValueError({
-                "type": "Configuration Error",
-                "message": "OPENROUTER_API_KEY environment variable not found"
-            })
+            raise ValueError(
+                {
+                    "type": "Configuration Error",
+                    "message": "OPENROUTER_API_KEY environment variable not found",
+                }
+            )
 
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
@@ -83,7 +86,9 @@ def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:f
         {input_text}
         """
 
-        progress.simulate_progress("Sending request to AI model...", start_from=0, until=10)
+        progress.simulate_progress(
+            "Sending request to AI model...", start_from=0, until=10
+        )
 
         completion = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": prompt}]
@@ -93,18 +98,19 @@ def process_text(input_text, model="google/gemini-2.0-flash-lite-preview-02-05:f
         progress.simulate_progress("Processing AI response...", start_from=0, until=90)
 
         if not completion or not completion.choices or len(completion.choices) == 0:
-            raise ValueError({
-                "type": "API Error",
-                "message": "Invalid response from OpenRouter API"
-            })
+            raise ValueError(
+                {"type": "API Error", "message": "Invalid response from OpenRouter API"}
+            )
         progress.update("Processing completed", 100)
         return completion.choices[0].message.content
 
     except Exception as e:
-        if hasattr(e, 'args') and isinstance(e.args[0], dict):
+        if hasattr(e, "args") and isinstance(e.args[0], dict):
             raise type(e)(e.args[0])
         else:
-            raise ValueError({
-                "type": "Processing Error",
-                "message": f"Error processing text with OpenRouter: {str(e)}"
-            })
+            raise ValueError(
+                {
+                    "type": "Processing Error",
+                    "message": f"Error processing text with OpenRouter: {str(e)}",
+                }
+            )
