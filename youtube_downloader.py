@@ -2,6 +2,7 @@
 YouTube Downloader Module
 
 This module provides functionality to download YouTube videos using wget and yt-dlp.
+With a focus on downloading audio-only from YouTube videos.
 """
 
 import os
@@ -293,6 +294,18 @@ class YouTubeDownloader:
                 "error": f"Error: {str(e)}",
                 "file_path": None
             }
+            
+    def download(self, url):
+        """
+        Main download method that always downloads only audio from YouTube videos.
+        
+        Args:
+            url (str): YouTube video URL
+            
+        Returns:
+            dict: A dictionary containing download results from download_audio_only
+        """
+        return self.download_audio_only(url)
 
 
 # Example usage via command line
@@ -337,8 +350,9 @@ if __name__ == "__main__":
         else:
             print(f"\nDownload failed: {result['error']}")
     else:
-        print(f"Downloading video from: {args.url} with resolution: {args.resolution}")
-        result = downloader.download_video(args.url, resolution=args.resolution)
+        # Use the new default behavior to download audio only
+        print(f"Downloading audio from: {args.url}")
+        result = downloader.download(args.url)
         if result["success"]:
             print(f"\nDownload successful!")
             print(f"Title: {result['title']}")
