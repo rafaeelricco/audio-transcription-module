@@ -1,11 +1,9 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from ui import ProgressBar
+from logger import Logger
 
 load_dotenv()
-
-progress = ProgressBar()
 
 
 def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
@@ -86,22 +84,20 @@ def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
         {input_text}
         """
 
-        progress.simulate_progress(
-            "Sending request to AI model...", start_from=0, until=10
-        )
+        Logger.log(True, "Sending request to AI model...")
 
         completion = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": prompt}]
         )
-        progress.update("Request confirmed by API", 100)
+        Logger.log(True, "Request confirmed by API")
 
-        progress.simulate_progress("Processing AI response...", start_from=0, until=90)
+        Logger.log(True, "Processing AI response...")
 
         if not completion or not completion.choices or len(completion.choices) == 0:
             raise ValueError(
                 {"type": "API Error", "message": "Invalid response from OpenRouter API"}
             )
-        progress.update("Processing completed", 100)
+        Logger.log(True, "Processing completed")
         return completion.choices[0].message.content
 
     except Exception as e:

@@ -37,12 +37,11 @@ from pathlib import Path
 import numpy as np
 
 from argparse import ArgumentParser
-from ui import ProgressBar
+from logger import Logger
 from ai_transcript_processor import process_text
 
 
 def transcribe_audio(input_path, output_path=None, device=None):
-    progress_bar = ProgressBar()
     try:
         # Determine the best device to use
         if device is None:
@@ -51,37 +50,36 @@ def transcribe_audio(input_path, output_path=None, device=None):
         # Set appropriate floating point precision based on device
         fp16 = device != "cpu"
 
-        progress_bar.update("Loading Whisper model", 10)
+        Logger.log(True, "Loading Whisper model")
         # Load the model with the appropriate device and precision settings
         model = whisper.load_model("turbo", device=device, in_memory=True)
 
-        progress_bar.update("Processing audio file", 30)
+        Logger.log(True, "Processing audio file")
         audio = whisper.load_audio(input_path["file_path"])
         audio = whisper.pad_or_trim(audio)
         if not isinstance(audio, np.ndarray):
             raise ValueError("Invalid audio format")
 
-        progress_bar.update("Transcribing audio", 50)
+        Logger.log(True, "Transcribing audio")
         # Pass fp16 parameter to transcribe method, not to load_model
         result = model.transcribe(audio, fp16=fp16)
 
         if output_path:
-            progress_bar.update("Saving transcription", 90)
+            Logger.log(True, "Saving transcription")
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(result["text"])
 
-        progress_bar.update("Transcription complete", 100)
+        Logger.log(True, "Transcription complete")
         print("\n✓ Transcription successful!")
         return result
     except Exception as e:
-        progress_bar.update("Transcription failed", 100)
+        Logger.log(False, "Transcription failed")
         print(f"\n✗ Transcription error: {str(e)}")
         return False
 
 
 def save_and_process_transcript(transcript_text, output_path=None, file_name=None):
     """Save transcript and process with AI"""
-    progress_bar = ProgressBar()
     try:
         # Ensure dist directory exists
         os.makedirs("dist", exist_ok=True)
@@ -101,41 +99,40 @@ def save_and_process_transcript(transcript_text, output_path=None, file_name=Non
             raw_path = f"{base_output_path}.txt"
 
         # Save raw transcript
-        progress_bar.update("Saving raw transcript", 50)
+        Logger.log(True, "Saving raw transcript")
         with open(raw_path, "w", encoding="utf-8") as f:
             f.write(transcript_text)
 
         print(f"\n✓ Raw transcription saved to: {raw_path}")
 
-        progress_bar.update("Processing transcript with AI", 70)
+        Logger.log(True, "Processing transcript with AI")
         try:
             processed_text = process_text(transcript_text)
 
             if processed_text:
-                progress_bar.update("Saving organized transcript", 90)
+                Logger.log(True, "Saving organized transcript")
                 organized_path = f"{base_output_path}_organized.md"
                 with open(organized_path, "w", encoding="utf-8") as f:
                     f.write(processed_text)
-                progress_bar.update("Processing complete", 100)
+                Logger.log(True, "Processing complete")
                 print(f"✓ Organized transcription saved to: {organized_path}\n")
                 return True
             else:
-                progress_bar.update("AI processing failed", 100)
+                Logger.log(False, "AI processing failed")
                 print("✗ Organized version not saved due to processing errors")
         except Exception as e:
-            progress_bar.update("AI processing failed", 100)
+            Logger.log(False, "AI processing failed")
             print(f"\n✗ AI processing error: {str(e)}")
 
         return True
     except Exception as e:
-        progress_bar.update("Failed to save transcript", 100)
+        Logger.log(False, "Failed to save transcript")
         print(f"\n✗ Error saving transcript: {str(e)}")
         return False
 
 
 def main():
     """Main transcription execution flow"""
-    progress_bar = ProgressBar()
 
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument(
@@ -161,7 +158,7 @@ def main():
     if args.device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     elif args.device == "cuda" and not torch.cuda.is_available():
-        progress_bar.update("GPU not available", 100)
+        Logger.log(False, "GPU not available")
         print("\n⚠️ GPU requested but not available, falling back to CPU")
         device = "cpu"
     else:
@@ -172,18 +169,18 @@ def main():
     if args.youtube:
         from youtube_downloader import YouTubeDownloader
 
-        progress_bar.update("Initializing YouTube downloader", 10)
+        Logger.log(True, "Initializing YouTube downloader")
         downloader = YouTubeDownloader()
         
-        progress_bar.update("Downloading audio from YouTube", 20)
+        Logger.log(True, "Downloading audio from YouTube")
         audio_path = downloader.download_audio_only(args.youtube)
 
         if not audio_path.get("success", False):
-            progress_bar.update("YouTube download failed", 100)
+            Logger.log(False, "YouTube download failed")
             print(f"\n✗ Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}")
             return False
 
-        progress_bar.update("Preparing for transcription", 40)
+        Logger.log(True, "Preparing for transcription")
         transcript_result = transcribe_audio(audio_path, None, device)
 
         if transcript_result:
@@ -196,7 +193,7 @@ def main():
         return False
 
     if not args.audio:
-        progress_bar.update("No input specified", 100)
+        Logger.log(False, "No input specified")
         print(
             "\n✗ No input specified. Please provide either --audio or --youtube argument."
         )
@@ -204,22 +201,22 @@ def main():
 
     expanded_files = []
 
-    progress_bar.update("Finding audio files", 10)
+    Logger.log(True, "Finding audio files")
     for pattern in args.audio:
         expanded_files.extend(glob.glob(pattern, recursive=True))
 
     if not expanded_files:
-        progress_bar.update("No audio files found", 100)
+        Logger.log(False, "No audio files found")
         print("\n✗ No audio files found matching the provided patterns.")
         sys.exit(1)
 
-    progress_bar.update("Files found", 100)
+    Logger.log(True, "Files found")
     print(f"\n✓ Found {len(expanded_files)} files to process:")
     for f in expanded_files:
         print(f" - {f}")
 
     for index, file in enumerate(expanded_files):
-        progress_bar.update(f"Processing file {index+1}/{len(expanded_files)}", 0)
+        Logger.log(True, f"Processing file {index+1}/{len(expanded_files)}")
         print(f"\n✓ Transcribing audio file {index+1}/{len(expanded_files)}...")
 
         # Determine output path for this file
