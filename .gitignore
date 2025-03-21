@@ -1,16 +1,26 @@
+# Ambientes virtuais e cache
+__pycache__/
+*.py[cod]
+*$py.class
+/env/
+/venv/
 .env
-/json
-/output
-/env
-/venv
+
+# Diretórios de dados e saída
+/downloads/
+/json/
+/output/
+/data/
+/models/
+/performance/
+/assets/
+/dist/
+
+# Arquivos de dados e logs
 *.json
 *.csv
 *.log
 *.pkl
-data
-models
-performance
-assets
-dist
-__pycache__
+
+# Binários e dependências externas
 ffmpeg
