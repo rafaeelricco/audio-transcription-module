@@ -31,6 +31,7 @@ import json
 import subprocess
 import shutil
 import re
+from ui import ProgressBar
 
 from urllib.parse import urlparse, parse_qs
 
@@ -184,16 +185,17 @@ class YouTubeDownloader:
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
         """
+        progress_bar = ProgressBar()
         try:
+            progress_bar.update("Getting video information")
             info = self.get_video_info(url)
             if not info["success"]:
+                progress_bar.update("Failed to get video information", 100)
                 return info
 
-            print(f"\nVideo title: {info['title']}")
-            print(f"Author: {info['author']}")
-            print(f"Length: {info['length']} seconds")
-            print(f"Thumbnail: {info['thumbnail_url']}")
-
+            progress_bar.update(f"Video found: {info['title']}")
+            progress_bar.update(f"Video details", 100)
+            
             height = None
             if resolution != "highest" and resolution.endswith("p"):
                 height = resolution[:-1]  # Remove the 'p' to get just the number
@@ -205,10 +207,11 @@ class YouTubeDownloader:
                         f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
                     )
                 else:
-                    print(
+                    progress_bar.update(
                         f"Resolution {resolution} not available. Using highest available resolution."
                     )
 
+            progress_bar.update("Preparing download")
             cmd = ["yt-dlp", "-f", format_selector, "-g", url]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             direct_url = result.stdout.strip()
@@ -219,8 +222,7 @@ class YouTubeDownloader:
             safe_title = self._sanitize_filename(info["title"])
             output_file = os.path.join(self.output_path, f"{safe_title}.mp4")
 
-            print(f"Selected format: {resolution}")
-            print(f"Downloading to: {output_file}")
+            progress_bar.update(f"Downloading video: {resolution}", 30)
 
             if self.has_wget:
                 wget_cmd = [
@@ -243,15 +245,22 @@ class YouTubeDownloader:
                 ]
                 subprocess.run(ytdlp_cmd, check=True)
 
+            progress_bar.update("Download complete", 100)
+            print(f"\n✓ Video downloaded successfully to: {output_file}")
             return {"success": True, "file_path": output_file, "title": info["title"]}
 
         except subprocess.CalledProcessError as e:
+            progress_bar.update("Download failed", 100)
+            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+            print(f"\n✗ Download failed: {error_msg}")
             return {
                 "success": False,
-                "error": f"Error: {e.stderr if hasattr(e, 'stderr') else str(e)}",
+                "error": f"Error: {error_msg}",
                 "file_path": None,
             }
         except Exception as e:
+            progress_bar.update("Download failed", 100)
+            print(f"\n✗ Download failed: {str(e)}")
             return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
 
     def download_audio_only(self, url):
@@ -271,15 +280,17 @@ class YouTubeDownloader:
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
         """
+        progress_bar = ProgressBar()
         try:
+            progress_bar.update("Getting video information")
             info = self.get_video_info(url)
             if not info["success"]:
+                progress_bar.update("Failed to get video information", 100)
                 return info
 
-            print(f"\nVideo title: {info['title']}")
-            print(f"Author: {info['author']}")
-            print(f"Length: {info['length']} seconds")
+            progress_bar.update(f"Video found: {info['title']}", 20)
 
+            progress_bar.update("Preparing audio extraction", 30)
             cmd = ["yt-dlp", "-f", "bestaudio", "-g", url]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             direct_url = result.stdout.strip()
@@ -287,7 +298,7 @@ class YouTubeDownloader:
             safe_title = self._sanitize_filename(info["title"])
             output_file = os.path.join(self.output_path, f"{safe_title}.mp3")
 
-            print(f"Downloading audio to: {output_file}")
+            progress_bar.update(f"Downloading audio", 50)
 
             if self.has_wget:
                 wget_cmd = [
@@ -310,15 +321,22 @@ class YouTubeDownloader:
                 ]
                 subprocess.run(ytdlp_cmd, check=True)
 
+            progress_bar.update("Download complete", 100)
+            print(f"\n✓ Audio downloaded successfully to: {output_file}")
             return {"success": True, "file_path": output_file, "title": info["title"]}
 
         except subprocess.CalledProcessError as e:
+            progress_bar.update("Download failed", 100)
+            error_msg = e.stderr if hasattr(e, 'stderr') else str(e)
+            print(f"\n✗ Audio download failed: {error_msg}")
             return {
                 "success": False,
-                "error": f"Error: {e.stderr if hasattr(e, 'stderr') else str(e)}",
+                "error": f"Error: {error_msg}",
                 "file_path": None,
             }
         except Exception as e:
+            progress_bar.update("Download failed", 100)
+            print(f"\n✗ Audio download failed: {str(e)}")
             return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
 
     def download(self, url):
@@ -366,36 +384,40 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    progress_bar = ProgressBar()
 
     downloader = YouTubeDownloader(output_path=args.output_path)
 
     if args.info:
-        print(f"Getting information for: {args.url}")
+        progress_bar.update(f"Getting information for: {args.url}")
         info = downloader.get_video_info(args.url)
         if info["success"]:
-            print(f"\nTitle: {info['title']}")
-            print(f"Author: {info['author']}")
-            print(f"Length: {info['length']} seconds")
-            print(f"Thumbnail: {info['thumbnail_url']}")
-            print(f"Available resolutions: {', '.join(info['available_resolutions'])}")
-            print(f"Views: {info['views']}")
+            progress_bar.update("Video information retrieved", 100)
+            print(f"\n✓ Video information retrieved successfully:")
+            print(f"  Title: {info['title']}")
+            print(f"  Author: {info['author']}")
+            print(f"  Length: {info['length']} seconds")
+            print(f"  Thumbnail: {info['thumbnail_url']}")
+            print(f"  Available resolutions: {', '.join(info['available_resolutions'])}")
+            print(f"  Views: {info['views']}")
         else:
-            print(f"Failed to get video info: {info['error']}")
+            progress_bar.update("Failed to get video information", 100)
+            print(f"\n✗ Failed to get video info: {info['error']}")
     elif args.audio_only:
-        print(f"Downloading audio from: {args.url}")
+        progress_bar.update(f"Downloading audio from: {args.url}")
         result = downloader.download_audio_only(args.url)
         if result["success"]:
-            print(f"\nDownload successful!")
-            print(f"Title: {result['title']}")
-            print(f"Saved to: {result['file_path']}")
+            print(f"  Title: {result['title']}")
+            print(f"  Saved to: {result['file_path']}")
         else:
-            print(f"\nDownload failed: {result['error']}")
+            # Error already printed in the download_audio_only method
+            pass
     else:
-        print(f"Downloading audio from: {args.url}")
+        progress_bar.update(f"Downloading video from: {args.url}")
         result = downloader.download(args.url)
         if result["success"]:
-            print(f"\nDownload successful!")
-            print(f"Title: {result['title']}")
-            print(f"Saved to: {result['file_path']}")
+            print(f"  Title: {result['title']}")
+            print(f"  Saved to: {result['file_path']}")
         else:
-            print(f"\nDownload failed: {result['error']}")
+            # Error already printed in the download method
+            pass
