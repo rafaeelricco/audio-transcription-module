@@ -1,5 +1,5 @@
 """
-© r1cco.com
+ r1cco.com
 
 Audio Transcription Module
 
@@ -27,200 +27,45 @@ Basic usage:
 import sys
 import os
 import torch
-from transformers import pipeline, AutoModelForSpeechSeq2Seq, AutoProcessor
-from argparse import ArgumentParser
 import warnings
-from transformers import logging as transformers_logging
-from ui import ProgressBar
 import glob
+import whisper
+from pathlib import Path
+import numpy as np
+
+from argparse import ArgumentParser
+from ui import ProgressBar
 
 
-def transcribe_audio(input_path, output_path=None, device=None, torch_dtype=None):
-    """
-    Transcribe audio file(s) to text using Whisper large-v3-turbo model.
-    Handles both single files and batch processing.
-    """
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    transformers_logging.set_verbosity_error()
-    progress = ProgressBar()
-
+def transcribe_audio(input_path, output_path=None, device=None):
     try:
-        if isinstance(input_path, list):
-            results = []
-            for idx, file_path in enumerate(input_path, 1):
-                print(
-                    f"\nProcessing file {idx}/{len(input_path)}: {os.path.basename(file_path)}"
-                )
-                result = _process_single_file(
-                    file_path, output_path, device, torch_dtype, progress
-                )
-                results.append(result)
-            return all(results)
-
-        return _process_single_file(
-            input_path, output_path, device, torch_dtype, progress
-        )
-
-    except Exception as e:
-        print(f"\n✗ Transcription error: {str(e)}")
-        return False
-
-
-def _process_single_file(input_path, output_path, device, torch_dtype, progress):
-    """Handle processing for a single audio file"""
-    try:
-        filename = os.path.basename(input_path)
-        progress.reset()
-
-        progress.simulate_progress(
-            f"Loading model for {filename}...", start_from=0, until=40
-        )
-
-        os.makedirs("dist", exist_ok=True)
-
+        # Determine the best device to use
         if device is None:
-            device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        if torch_dtype is None:
-            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        model_id = "openai/whisper-large-v3-turbo"
+        # Set appropriate floating point precision based on device
+        fp16 = device != "cpu"
 
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            model_id,
-            torch_dtype=torch_dtype,
-            low_cpu_mem_usage=True,
-            use_safetensors=True,
-            attn_implementation="sdpa" if torch.cuda.is_available() else "eager",
-        )
-        model.to(device)
+        # Load the model with the appropriate device and precision settings
+        model = whisper.load_model("turbo", device=device, in_memory=True)
 
-        processor = AutoProcessor.from_pretrained(model_id)
-        progress.update(f"Model loaded for {filename}", 100)
+        audio = whisper.load_audio(input_path["file_path"])
+        audio = whisper.pad_or_trim(audio)
+        if not isinstance(audio, np.ndarray):
+            raise ValueError("Invalid audio format")
 
-        progress.simulate_progress(
-            f"Initializing pipeline for {filename}...", start_from=0, until=70
-        )
-        pipe = pipeline(
-            "automatic-speech-recognition",
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
-            chunk_length_s=30,
-            batch_size=16,
-            torch_dtype=torch_dtype,
-            device=device,
-        )
-        progress.update(f"Pipeline ready for {filename}", 100)
-
-        progress.simulate_progress(
-            f"Transcribing {filename}...", start_from=0, until=90
-        )
-        generate_kwargs = {
-            "task": "transcribe",
-            "language": "portuguese",
-            "condition_on_prev_tokens": False,
-            "compression_ratio_threshold": 1.35,
-            "temperature": (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
-            "logprob_threshold": -1.0,
-            "no_speech_threshold": 0.6,
-            "return_timestamps": True,
-        }
-
-        result = pipe(input_path, generate_kwargs=generate_kwargs)
-        progress.update(f"Transcription complete {filename}", 100)
-
-        from ai_transcript_processor import process_text
-
-        try:
-            organized_text = process_text(result["text"])
-            ai_success = True
-        except Exception as e:
-            error_info = (
-                e.args[0]
-                if hasattr(e, "args") and isinstance(e.args[0], dict)
-                else {"type": "Unknown Error", "message": str(e)}
-            )
-            print(f"\n✗ AI Processing Failed")
-            print(f"Type: {error_info['type']}")
-            print(f"Message: {error_info['message']}")
-            print("\nFalling back to raw transcription only.")
-            organized_text = None
-            ai_success = False
-
-        if not organized_text:
-            print("AI processing failed. Only raw transcription will be saved.")
-            ai_success = False
-
-        progress.update(f"AI processing done: {filename}", 100)
+        # Pass fp16 parameter to transcribe method, not to load_model
+        result = model.transcribe(audio, fp16=fp16)
 
         if output_path:
-            if os.path.isdir(output_path):
-                base_name = os.path.splitext(os.path.basename(input_path))[0]
-                base_output_path = os.path.join(output_path, base_name)
-            else:
-                base_output_path = output_path
-        else:
-            base_name = os.path.splitext(os.path.basename(input_path))[0]
-            output_dir = os.path.join("dist", base_name)
-            base_output_path = os.path.join(output_dir, base_name)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(result["text"])
 
-        os.makedirs(os.path.dirname(base_output_path), exist_ok=True)
-
-        raw_path = f"{base_output_path}_raw.txt"
-        with open(raw_path, "w", encoding="utf-8") as f:
-            f.write(result["text"])
-
-        if ai_success:
-            organized_path = f"{base_output_path}_organized.txt"
-            with open(organized_path, "w", encoding="utf-8") as f:
-                f.write(organized_text)
-            print(f"\n✓ Raw transcription saved to: {raw_path}")
-            print(f"✓ Organized transcription saved to: {organized_path}\n")
-        else:
-            print(f"\n✓ Raw transcription saved to: {raw_path}")
-            print("✗ Organized version not saved due to processing errors")
-            return False
-        return True
-
+        print("\n✓ Transcription successful!")
+        return result
     except Exception as e:
         print(f"\n✗ Transcription error: {str(e)}")
         return False
-
-
-def check_ffmpeg_installation():
-    """Checks ffmpeg installation and provides instructions if missing"""
-    try:
-        import subprocess
-
-        subprocess.run(
-            ["ffmpeg", "-version"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        print("\nError: ffmpeg is required but not installed.")
-        print("Install on macOS with:\n  brew install ffmpeg")
-        sys.exit(1)
-
-
-def check_and_install_cuda():
-    """
-    Checks CUDA support and installs PyTorch with CUDA if needed.
-    Returns True if CUDA is available or installation was successful.
-    """
-    if not torch.cuda.is_available():
-        print("\n! GPU not detected. Por favor execute:")
-        print("1. Feche todos os programas Python")
-        print("2. Execute o prompt de comando como Administrador")
-        print("3. Execute o comando abaixo:")
-        print(
-            "\npip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --user"
-        )
-        print("\nDepois reinicie o script.")
-        return False
-
-    return True
 
 
 def main():
@@ -228,60 +73,116 @@ def main():
 
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument(
-        "--audio", required=True, nargs="+", help="Input audio file(s) or patterns"
+        "--audio", required=False, nargs="+", help="Input audio file(s) or patterns"
+    )
+    parser.add_argument(
+        "--youtube", type=str, help="YouTube video URL for transcription"
     )
     parser.add_argument("--output", help="Output path (file or directory)")
     parser.add_argument(
-        "--device", choices=["cpu", "gpu"], help="Specify processing device (cpu/gpu)"
+        "--process-ai",
+        action="store_true",
+        help="Process transcript with AI for summarization and organization",
+    )
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "cuda", "auto"],
+        default="auto",
+        help="Device to use for processing (cpu, cuda, or auto for automatic detection)",
     )
     args = parser.parse_args()
 
-    if args.device:
-        device_used = "cuda:0" if args.device == "gpu" else "cpu"
-    else:
-        device_used = "cuda:0" if torch.cuda.is_available() else "cpu"
+    os.environ["WHISPER_CACHE_DIR"] = str(Path("./cache").absolute())
+    Path("./cache").mkdir(exist_ok=True)
 
-    print("\nPyTorch CUDA Diagnostics:")
-    print(f" - CUDA available: {'Yes' if torch.cuda.is_available() else 'No'}")
-    print(f" - Device selected: {'GPU' if 'cuda' in device_used else 'CPU'}")
-    if torch.cuda.is_available():
-        print(f" - Current device: {torch.cuda.current_device()}")
-        print(f" - Device name: {torch.cuda.get_device_name()}")
-        print(f" - CUDA version: {torch.version.cuda}")
-        print(f" - cuDNN version: {torch.backends.cudnn.version()}")
-        print(f" - PyTorch version: {torch.__version__}")
-        print(f" - Python version: {sys.version}")
+    # Determine device based on user preference and availability
+    device = None
+    if args.device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    elif args.device == "cuda" and not torch.cuda.is_available():
+        print("\n⚠️ GPU requested but not available, falling back to CPU")
+        device = "cpu"
     else:
-        if not check_and_install_cuda():
-            print("\n! Warning: PyTorch is not detecting the GPU. Please verify:")
-            print("1. PyTorch is installed with CUDA support")
-            print("2. CUDA version is compatible with your drivers")
-            print("\nTo install PyTorch with CUDA 12.1 support, run:")
-            print(
-                "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
-            )
+        device = args.device
 
-    check_ffmpeg_installation()
+    print(f"\n✓ Using device: {device}")
+
+    if args.youtube:
+        from youtube_downloader import YouTubeDownloader
+        from ai_transcript_processor import process_text
+
+        print("\n✓ Downloading audio from YouTube...")
+        downloader = YouTubeDownloader()
+        audio_path = downloader.download_audio_only(args.youtube)
+
+        print("\n✓ Transcribing audio...")
+        transcript_result = transcribe_audio(audio_path, args.output, device)
+
+        if transcript_result and args.process_ai:
+            print("\n✓ Processing transcript with AI...")
+            try:
+                # Process the text with AI
+                processed_text = process_text(transcript_result["text"])
+                ai_success = processed_text is not None
+
+                # Determine output paths
+                if args.output:
+                    base_output_path = os.path.splitext(args.output)[0]
+                    raw_path = args.output
+                else:
+                    # Use video title as filename
+                    video_title = audio_path.get("title", "transcript")
+                    safe_title = "".join(
+                        c if c.isalnum() or c in [" ", "-", "_"] else "_"
+                        for c in video_title
+                    )
+                    os.makedirs("dist", exist_ok=True)
+                    base_output_path = f"dist/{safe_title}"
+                    raw_path = f"{base_output_path}.txt"
+                    # Ensure raw text is saved if not already
+                    if not args.output:
+                        with open(raw_path, "w", encoding="utf-8") as f:
+                            f.write(transcript_result["text"])
+
+                # Save results and display messages based on success
+                if ai_success:
+                    organized_path = f"{base_output_path}_organized.md"
+                    with open(organized_path, "w", encoding="utf-8") as f:
+                        f.write(processed_text)
+                    print(f"\n✓ Raw transcription saved to: {raw_path}")
+                    print(f"✓ Organized transcription saved to: {organized_path}\n")
+                else:
+                    print(f"\n✓ Raw transcription saved to: {raw_path}")
+                    print("✗ Organized version not saved due to processing errors")
+
+            except Exception as e:
+                print(f"\n✗ AI processing error: {str(e)}")
+                print(
+                    f"✓ Raw transcription saved to: {args.output if args.output else 'dist/transcript.txt'}"
+                )
+
+        return transcript_result
 
     expanded_files = []
     for pattern in args.audio:
         expanded_files.extend(glob.glob(pattern, recursive=True))
 
     if not expanded_files:
-        print("\n❌ No audio files found matching the provided patterns")
+        print("\n✗ No audio files found matching the provided patterns.")
         sys.exit(1)
 
-    print(f"\nFound {len(expanded_files)} files to process:")
+    print(f"\n✓ Found {len(expanded_files)} files to process:")
     for f in expanded_files:
         print(f" - {f}")
 
-    success = transcribe_audio(
-        expanded_files,
-        args.output,
-        device=device_used,
-        torch_dtype=torch.float16 if device_used == "gpu" else torch.float32,
-    )
-    sys.exit(0 if success else 1)
+    for file in expanded_files:
+        print("\n✓ Transcribing audio...")
+        success = transcribe_audio({"file_path": file}, args.output, device)
+        if success:
+            print(f"\n✓ Transcription of {file} successful!")
+        else:
+            print(f"\n✗ Transcription of {file} failed.")
+    sys.exit(0)
 
 
 if __name__ == "__main__":
