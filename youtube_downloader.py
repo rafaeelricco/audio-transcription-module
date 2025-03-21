@@ -6,11 +6,11 @@ With a focus on downloading audio-only from YouTube videos.
 """
 
 import os
-import sys
 import json
 import subprocess
 import shutil
 import re
+
 from urllib.parse import urlparse, parse_qs
 
 
