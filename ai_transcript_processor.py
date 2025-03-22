@@ -78,6 +78,8 @@ def process_text(input_text):
         return processed_text
 
     except Exception as e:
+        Logger.log(False, "AI processing failed")
+        Logger.log(False, "Organized version not saved due to processing errors")
         if hasattr(e, "args") and isinstance(e.args[0], dict):
             raise type(e)(e.args[0])
         else:

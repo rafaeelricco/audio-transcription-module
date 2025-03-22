@@ -40,7 +40,7 @@ class OpenRouterProvider:
                 result += chunk.text
         print()
 
-        return "".join(chunk.text for chunk in response if chunk.text is not None)
+        return result
 
 
 class GeminiProvider:
@@ -79,4 +79,4 @@ class GeminiProvider:
                 result += chunk.text
         print()
 
-        return "".join(chunk.text for chunk in response if chunk.text is not None)
+        return result
