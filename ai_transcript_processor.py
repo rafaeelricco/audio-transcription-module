@@ -37,7 +37,7 @@ def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
         )
 
         prompt = f"""
-        Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown. Completely adapt the structure based on the specific content, following these general guidelines:
+        Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown without any Markdown code block tags (```). Completely adapt the structure based on the specific content, following these general guidelines:
 
         1. Determine the most appropriate main title that captures the essence of the content.
 
