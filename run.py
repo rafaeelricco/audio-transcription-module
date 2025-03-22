@@ -44,17 +44,6 @@ from ai_transcript_processor import process_text
 from utils import load_config, ensure_dir, sanitize_filename
 
 
-class TranscriptionError(Exception):
-    """
-    Exception raised for errors during audio transcription.
-
-    This custom exception is used to encapsulate various errors that may occur
-    during the audio transcription process.
-    """
-
-    pass
-
-
 class WhisperModel:
     """
     Singleton class to manage Whisper model loading and caching.
@@ -187,7 +176,7 @@ def select_device(requested_device: str = None) -> str:
     else:
         device = requested_device
 
-    Logger.log(True, f"Using device: {device}")
+    Logger.log(True, f"Using device: {device.upper()}")
     return device
 
 
@@ -211,21 +200,15 @@ def transcribe_audio(
     Returns:
         Dict[str, Any]: Transcription result including 'text' and metadata,
                        or error information in case of failure
-
-    Raises:
-        TranscriptionError: If the transcription process fails
-        ValueError: If input audio cannot be loaded or is invalid
     """
     try:
         config = get_config().get("transcription", {})
         device = select_device(device)
 
-        # Get or create the Whisper model (cached)
         model_name = config.get("model_name", "turbo")
         model_manager = WhisperModel()
         model = model_manager.load_model(model_name, device)
 
-        # Prepare transcription parameters
         fp16 = device != "cpu" and config.get("fp16", True)
 
         Logger.log(True, "Processing audio file")
@@ -239,7 +222,6 @@ def transcribe_audio(
 
         Logger.log(True, "Transcribing complete audio")
 
-        # Get transcription parameters from config
         result = model.transcribe(
             audio,
             fp16=fp16,
@@ -256,18 +238,15 @@ def transcribe_audio(
                 f.write(result["text"])
 
         Logger.log(True, "Transcription complete")
-        print("\n✓ Transcription successful!")
         return result
 
     except ValueError as e:
         Logger.log(False, f"Transcription failed: {str(e)}", "error")
-        print(f"\n✗ Transcription error: {str(e)}")
-        raise TranscriptionError(str(e))
+        raise ValueError(str(e))
 
     except Exception as e:
         Logger.log(False, f"Unexpected error during transcription: {str(e)}", "error")
-        print(f"\n✗ Transcription error: {str(e)}")
-        raise TranscriptionError(f"Unexpected error: {str(e)}")
+        raise ValueError(str(e))
 
 
 def save_and_process_transcript(
@@ -307,8 +286,7 @@ def save_and_process_transcript(
         with open(raw_path, "w", encoding="utf-8") as f:
             f.write(transcript_text)
 
-        print(f"\n✓ Raw transcription saved to: {raw_path}")
-
+        Logger.log(f"Raw transcription saved to: {raw_path}")
         Logger.log(True, "Processing transcript with AI")
         try:
             processed_text = process_text(transcript_text)
@@ -319,19 +297,21 @@ def save_and_process_transcript(
                 with open(organized_path, "w", encoding="utf-8") as f:
                     f.write(processed_text)
                 Logger.log(True, "Processing complete")
-                print(f"✓ Organized transcription saved to: {organized_path}\n")
+                Logger.log(True, "Organized transcription saved to: {organized_path}")
                 return True
             else:
                 Logger.log(False, "AI processing failed", "error")
-                print("✗ Organized version not saved due to processing errors")
+                Logger.log(
+                    False, "Organized version not saved due to processing errors"
+                )
         except Exception as e:
-            Logger.log(False, f"AI processing failed: {str(e)}", "error")
-            print(f"\n✗ AI processing error: {str(e)}")
+            Logger.log(False, "AI processing failed: {str(e)}", "error")
+            Logger.log(False, "AI processing error: {str(e)}")
 
         return True
     except Exception as e:
-        Logger.log(False, f"Failed to save transcript: {str(e)}", "error")
-        print(f"\n✗ Error saving transcript: {str(e)}")
+        Logger.log(False, "Failed to save transcript: {str(e)}", "error")
+        Logger.log(False, "Error saving transcript: {str(e)}")
         return False
 
 
@@ -428,18 +408,9 @@ def main():
     )
     args = parser.parse_args()
 
-    # Set up the environment
-    cache_dir = str(Path("./cache").absolute())
-    os.environ["WHISPER_CACHE_DIR"] = cache_dir
-    ensure_dir(cache_dir)
-
     if args.verbose:
         Logger.set_verbose(True)
 
-    # Select the device
-    device = select_device(args.device)
-
-    # Process YouTube input
     if args.youtube:
         try:
             from youtube_downloader import YouTubeDownloader
@@ -452,13 +423,14 @@ def main():
 
             if not audio_path.get("success", False):
                 Logger.log(False, "YouTube download failed", "error")
-                print(
-                    f"\n✗ Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}"
+                Logger.log(
+                    False,
+                    f"Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}",
                 )
                 return False
 
             Logger.log(True, "Preparing for transcription")
-            transcript_result = transcribe_audio(audio_path, None, device)
+            transcript_result = transcribe_audio(audio_path, None)
 
             if transcript_result:
                 file_name = audio_path.get("title", "youtube_transcript")
@@ -470,14 +442,13 @@ def main():
 
         except ImportError:
             Logger.log(False, "YouTube downloader module not available", "error")
-            print(
-                "\n✗ YouTube downloader module not available. Please check installation."
+            Logger.log(
+                False,
+                "YouTube downloader module not available. Please check installation.",
             )
             return False
 
-    # Process audio file(s)
     elif args.audio:
-        # Expand glob patterns
         audio_files = []
         for pattern in args.audio:
             if "*" in pattern or "?" in pattern:
@@ -493,7 +464,6 @@ def main():
             print("\n✗ No audio files to process. Please specify input files.")
             return False
 
-        # Check if output is directory (for batch processing)
         is_batch = len(audio_files) > 1
         output_is_dir = args.output and (
             os.path.isdir(args.output) or args.output.endswith("/") or is_batch
@@ -509,13 +479,10 @@ def main():
                 output_dir = "dist"
                 ensure_dir(output_dir)
 
-            # Process files
             if args.parallel and len(audio_files) > 1:
-                # Use multiprocessing for batch processing
                 max_workers = min(multiprocessing.cpu_count(), len(audio_files))
                 Logger.log(True, f"Using {max_workers} parallel workers", "debug")
 
-                # Create simplified argument list for multiprocessing
                 tasks = []
                 for file_path in audio_files:
                     if output_is_dir:
@@ -529,7 +496,6 @@ def main():
 
                     tasks.append((file_path, output_path))
 
-                # Process in parallel (we'll simplify this by using sequential with the optimized model)
                 results = []
                 for file_path, output_path in tasks:
                     audio_info = {
@@ -557,10 +523,8 @@ def main():
                             {"file": file_path, "success": False, "error": str(e)}
                         )
             else:
-                # Process sequentially
                 results = process_batch(audio_files, output_dir, device)
 
-            # Print summary
             success_count = sum(1 for r in results if r["success"])
             print(f"\n✓ Processed {success_count}/{len(results)} files successfully")
 

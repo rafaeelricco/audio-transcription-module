@@ -58,12 +58,10 @@ def sanitize_filename(filename: str) -> str:
     Returns:
         str: Sanitized filename with invalid characters replaced by underscores
     """
-    # First remove emojis and other non-ASCII characters
     filename = "".join(
         c for c in filename if c.isascii() and (c.isprintable() or c.isspace())
     )
 
-    # Then replace standard invalid filename characters with underscores
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
 
 

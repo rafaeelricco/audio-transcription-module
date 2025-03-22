@@ -30,16 +30,11 @@ import os
 import json
 import subprocess
 import shutil
+import argparse
 
 from logger import Logger
 from typing import Dict, Any
 from utils import sanitize_filename, get_youtube_video_id, ensure_dir
-
-
-class DownloadError(Exception):
-    """Exception raised for errors during YouTube download operations."""
-
-    pass
 
 
 class YouTubeDownloader:
@@ -106,9 +101,6 @@ class YouTubeDownloader:
                 - views: View count
                 - rating: Average rating
                 Or error details if unsuccessful
-
-        Raises:
-            DownloadError: If video information cannot be retrieved
         """
         try:
             video_id = get_youtube_video_id(url)
@@ -172,9 +164,6 @@ class YouTubeDownloader:
                 - file_path (str): Path to downloaded file if successful
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
-
-        Raises:
-            DownloadError: If the download fails
         """
         try:
             Logger.log(True, "Getting video information")
@@ -222,12 +211,10 @@ class YouTubeDownloader:
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
 
-            # Monitor download progress
             while True:
                 output = process.stdout.readline()
                 if output == "" and process.poll() is not None:
                     break
-                # Skip diagnostic and technical messages from yt-dlp
                 if output:
                     output_str = output.strip()
                     if (
@@ -272,9 +259,6 @@ class YouTubeDownloader:
                 - file_path (str): Path to downloaded file if successful
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
-
-        Raises:
-            DownloadError: If the download fails
         """
         try:
             video_id = get_youtube_video_id(url)
@@ -343,10 +327,9 @@ class YouTubeDownloader:
 
 
 if __name__ == "__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="YouTube Downloader Tool")
-    parser.add_argument("url", help="YouTube video URL")
+    parser.add_argument("url", help="YouTube video URL to download")
+
     parser.add_argument(
         "--info",
         action="store_true",
@@ -388,9 +371,6 @@ if __name__ == "__main__":
             print(f"Author: {video_info['author']}")
             print(f"Length: {video_info['length']} seconds")
             print(f"Views: {video_info['views']}")
-            print(
-                f"Available Resolutions: {', '.join(video_info['available_resolutions'])}"
-            )
         else:
             print(f"\nError: {video_info['error']}")
     elif args.audio_only:
