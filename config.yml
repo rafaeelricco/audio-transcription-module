@@ -18,5 +18,36 @@ providers:
         - gemini-2.0-flash
         - gemini-2.0-flash-thinking-exp-01-21
         - learnlm-1.5-pro-experimental
+    model_configs:
+      gemma-3-27b-it:
+        temperature: 1.0
+        top_p: 0.95
+        top_k: 64
+        max_output_tokens: 8192
+        response_mime_type: text/plain
+
+      gemini-2.0-flash:
+        temperature: 1
+        top_p: 0.95
+        top_k: 40
+        max_output_tokens: 8192
+        response_mime_type: text/plain
+
+      gemini-2.0-flash-thinking-exp-01-21:
+        temperature: 0.7
+        top_p: 0.95
+        top_k: 64
+        max_output_tokens: 65536
+        safety_settings:
+          - category: HARM_CATEGORY_CIVIC_INTEGRITY
+            threshold: "OFF"
+        response_mime_type: text/plain
+
+      learnlm-1.5-pro-experimental:
+        temperature: 1
+        top_p: 0.95
+        top_k: 64
+        max_output_tokens: 8192
+        response_mime_type: text/plain
 
 default_provider: gemini
