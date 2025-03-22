@@ -227,8 +227,15 @@ class YouTubeDownloader:
                 output = process.stdout.readline()
                 if output == "" and process.poll() is not None:
                     break
+                # Skip diagnostic and technical messages from yt-dlp
                 if output:
-                    Logger.log(True, output.strip(), "debug")
+                    output_str = output.strip()
+                    if (
+                        not output_str.startswith("[ExtractAudio]")
+                        and not output_str.startswith("[download]")
+                        and "has already been downloaded" not in output_str
+                    ):
+                        print(f"\r{output_str}", end="")
 
             return_code = process.poll()
             if return_code != 0:
@@ -288,41 +295,36 @@ class YouTubeDownloader:
             output_filename = f"{safe_title}.mp3"
             output_path = os.path.join(self.output_path, output_filename)
 
-            Logger.log(True, f"Downloading audio from: {title}")
-            Logger.log(True, f"Output will be saved to: {output_path}")
-
-            # Extract audio using yt-dlp
             cmd = [
                 "yt-dlp",
                 "-f",
                 "bestaudio",
-                "-x",  # Extract audio
+                "-x",
                 "--audio-format",
                 "mp3",
                 "--audio-quality",
-                "0",  # Best quality
+                "0",
                 "-o",
                 output_path,
                 "--no-playlist",
-                "--progress",
+                "--quiet",
                 url,
             ]
+
+            Logger.log(True, f"Downloading audio from: {safe_title}")
+            Logger.log(True, f"Output will be saved to: {output_path}")
 
             process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
 
-            # Monitor download progress
-            while True:
-                output = process.stdout.readline()
-                if output == "" and process.poll() is not None:
-                    break
-                if output:
-                    print(f"\r{output.strip()}", end="")
+            process.communicate()
+            return_code = process.returncode
 
-            return_code = process.poll()
             if return_code != 0:
-                stderr = process.stderr.read()
+                stderr = (
+                    process.stderr.read() if hasattr(process.stderr, "read") else ""
+                )
                 error_msg = f"Download failed with code {return_code}: {stderr}"
                 Logger.log(False, error_msg, "error")
                 return {"success": False, "error": error_msg}

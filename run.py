@@ -3,6 +3,8 @@
 
 Audio Transcription Module
 
+A Python module for high-quality audio-to-text transcription using OpenAI's Whisper models.
+
 Key features:
 - Audio-to-text transcription using Whisper large-v3-turbo
 - Automatic output organization in 'dist' directory
@@ -27,16 +29,14 @@ Basic usage:
   python run.py --audio example.flac --process-ai
 """
 
-import sys
 import os
 import torch
 import glob
 import whisper
 import numpy as np
 import multiprocessing
-import yaml
-from typing import Dict, Any, List
 
+from typing import Dict, Any, List
 from argparse import ArgumentParser
 from pathlib import Path
 from logger import Logger
@@ -45,13 +45,24 @@ from utils import load_config, ensure_dir, sanitize_filename
 
 
 class TranscriptionError(Exception):
-    """Exception raised for errors during audio transcription."""
+    """
+    Exception raised for errors during audio transcription.
+
+    This custom exception is used to encapsulate various errors that may occur
+    during the audio transcription process.
+    """
 
     pass
 
 
 class WhisperModel:
-    """Singleton class to manage Whisper model loading and caching."""
+    """
+    Singleton class to manage Whisper model loading and caching.
+
+    This class implements the singleton pattern to ensure only one instance
+    of the Whisper model is loaded into memory, improving efficiency when
+    processing multiple files.
+    """
 
     _instance = None
     _model = None
@@ -70,17 +81,19 @@ class WhisperModel:
         """
         Load the Whisper model, reusing it if already loaded with the same parameters.
 
+        This method implements lazy loading and caching of the Whisper model to
+        optimize resource usage and performance.
+
         Args:
-            model_name (str): Name of the Whisper model to load
-            device (str): Device to run the model on (cpu, cuda)
+            model_name (str): Name of the Whisper model to load (e.g., 'tiny', 'base', 'small', 'medium', 'large', 'turbo')
+            device (str, optional): Device to run the model on ('cpu', 'cuda'). Defaults to using CUDA if available.
 
         Returns:
-            whisper.Whisper: Loaded model
+            whisper.Whisper: Loaded Whisper model instance
 
         Raises:
-            ValueError: If the model or device is invalid
+            ValueError: If the model name is invalid or if model loading fails
         """
-        # Only reload if something changed
         if (
             self._model is None
             or model_name != self._model_name
@@ -106,12 +119,22 @@ class WhisperModel:
 
     @property
     def device(self) -> str:
-        """Get the current device."""
+        """
+        Get the current device used by the model.
+
+        Returns:
+            str: Current device ('cpu' or 'cuda')
+        """
         return self._device
 
     @property
     def model_name(self) -> str:
-        """Get the current model name."""
+        """
+        Get the current model name.
+
+        Returns:
+            str: Name of the currently loaded model
+        """
         return self._model_name
 
 
@@ -119,13 +142,15 @@ def get_config() -> Dict[str, Any]:
     """
     Load configuration from config.yml file or use defaults.
 
+    Attempts to load the configuration from the config.yml file. If the file
+    doesn't exist or can't be loaded, returns a default configuration.
+
     Returns:
-        Dict[str, Any]: Configuration dictionary
+        Dict[str, Any]: Configuration dictionary with transcription settings
     """
     try:
         return load_config()
     except FileNotFoundError:
-        # Default configuration if file doesn't exist
         return {
             "transcription": {
                 "model_name": "turbo",
@@ -139,13 +164,17 @@ def get_config() -> Dict[str, Any]:
 
 def select_device(requested_device: str = None) -> str:
     """
-    Select the appropriate device for transcription.
+    Select the appropriate device for transcription based on availability.
+
+    Determines the optimal device for running the Whisper model based on the
+    requested device and system capabilities.
 
     Args:
-        requested_device (str, optional): Device requested by user (cpu, cuda, auto)
+        requested_device (str, optional): Device requested by user ('cpu', 'cuda', 'auto').
+                                         Defaults to 'auto'.
 
     Returns:
-        str: Selected device name (cpu, cuda)
+        str: Selected device name ('cpu' or 'cuda')
     """
     if requested_device == "auto" or requested_device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -166,18 +195,26 @@ def transcribe_audio(
     input_path: Dict[str, str], output_path: str = None, device: str = None
 ) -> Dict[str, Any]:
     """
-    Transcribe audio file using Whisper model.
+    Transcribe audio file using the Whisper model.
+
+    Processes an audio file to generate a text transcription using the
+    Whisper model with the specified parameters.
 
     Args:
-        input_path (Dict): Dictionary containing info about the input file
-        output_path (str, optional): Path to save the transcription output
-        device (str, optional): Device to use for transcription (cpu, cuda)
+        input_path (Dict[str, str]): Dictionary containing information about the input file,
+                                    including 'file_path', 'file_name', etc.
+        output_path (str, optional): Path to save the transcription output.
+                                    If None, uses default output location.
+        device (str, optional): Device to use for transcription ('cpu', 'cuda', 'auto').
+                              Defaults to auto-selection.
 
     Returns:
-        Dict[str, Any]: Transcription result or error information
+        Dict[str, Any]: Transcription result including 'text' and metadata,
+                       or error information in case of failure
 
     Raises:
-        TranscriptionError: If transcription fails
+        TranscriptionError: If the transcription process fails
+        ValueError: If input audio cannot be loaded or is invalid
     """
     try:
         config = get_config().get("transcription", {})
@@ -237,15 +274,20 @@ def save_and_process_transcript(
     transcript_text: str, output_path: str = None, file_name: str = None
 ) -> bool:
     """
-    Save transcript and process with AI.
+    Save transcript to file and optionally process with AI.
+
+    Saves the raw transcript text to a file and can optionally process it
+    further with AI organization if configured to do so.
 
     Args:
-        transcript_text (str): Raw transcript text to process
-        output_path (str, optional): Path to save the processed transcript
-        file_name (str, optional): Name to use for the output file
+        transcript_text (str): Raw transcript text to save and potentially process
+        output_path (str, optional): Path to save the processed transcript.
+                                    If None, uses a default location.
+        file_name (str, optional): Name to use for the output file.
+                                  If None, uses a default name.
 
     Returns:
-        bool: True if processing successful, False otherwise
+        bool: True if saving and processing was successful, False otherwise
     """
     try:
         ensure_dir("dist")
@@ -299,13 +341,19 @@ def process_batch(
     """
     Process multiple audio files in batch.
 
+    Processes a list of audio files sequentially, optimizing for performance
+    by reusing the loaded model across files.
+
     Args:
-        files (List[str]): List of audio file paths
-        output_dir (str, optional): Directory to save transcripts
-        device (str, optional): Device to use for transcription
+        files (List[str]): List of audio file paths to process
+        output_dir (str, optional): Directory to save transcription outputs.
+                                   If None, uses a default location.
+        device (str, optional): Device to use for transcription ('cpu', 'cuda', 'auto').
+                              Defaults to auto-selection.
 
     Returns:
-        List[Dict[str, Any]]: Results for each file
+        List[Dict[str, Any]]: List of results for each processed file, including
+                             success/failure status and output paths or error details
     """
     results = []
 
@@ -339,9 +387,14 @@ def process_batch(
     return results
 
 
-def main() -> None:
-    """Main transcription execution flow."""
+def main():
+    """
+    Main function for audio transcription workflow.
 
+    Parses command line arguments, sets up the environment, and orchestrates
+    the transcription process for single files or batches of audio files.
+    Handles output file naming and placement as well as error conditions.
+    """
     parser = ArgumentParser(description="Audio transcription processor")
     parser.add_argument(
         "--audio", required=False, nargs="+", help="Input audio file(s) or patterns"

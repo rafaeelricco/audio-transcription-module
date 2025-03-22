@@ -1,5 +1,6 @@
 import logging
 import threading
+
 from typing import Optional
 
 
@@ -7,8 +8,12 @@ class Logger:
     """
     Thread-safe logger with support for multiple output formats.
 
-    This logger wraps Python's built-in logging module and adds features
-    like success/failure indicators and verbosity control.
+    This class provides a singleton logging interface that wraps Python's built-in
+    logging module with additional features such as thread safety, visual success/failure
+    indicators, and verbosity control. It supports both console and file output.
+
+    This logger is designed for use throughout the application to provide consistent
+    log formatting and behavior across all modules.
     """
 
     VERBOSE = False
@@ -17,7 +22,15 @@ class Logger:
 
     @classmethod
     def _get_logger(cls) -> logging.Logger:
-        """Get or create the logger instance."""
+        """
+        Get or create the logger instance.
+
+        Creates the logger if it doesn't exist yet, following the singleton pattern.
+        This internal method handles the thread-safe initialization of the logger.
+
+        Returns:
+            logging.Logger: The configured logger instance
+        """
         if cls._logger is None:
             with cls._lock:
                 if cls._logger is None:
@@ -34,8 +47,12 @@ class Logger:
         """
         Set the verbosity level for the logger.
 
+        Controls whether debug-level messages are displayed. When verbose is True,
+        debug messages are shown; otherwise, they are suppressed.
+
         Args:
-            verbose (bool): If True, debug messages will be shown
+            verbose (bool): If True, debug messages will be shown; if False,
+                           only info level and higher messages will be shown
         """
         with cls._lock:
             cls.VERBOSE = verbose
@@ -47,11 +64,17 @@ class Logger:
         """
         Log a message with appropriate formatting and level.
 
+        Logs a message with visual indicators for success/failure status and
+        proper log level formatting. Messages are automatically prefixed with
+        symbols: ✓ for success and ✗ for failure.
+
         Args:
-            success (bool): Whether the operation was successful
-            message (str): The message to log
-            level (str): Log level - one of: info, debug, warning, error
+            success (bool): Whether the operation was successful (affects the prefix symbol)
+            message (str): The message text to log
+            level (str): Log level - one of: 'info', 'debug', 'warning', 'error'.
+                        Debug messages are only shown when verbose mode is enabled.
         """
+
         if level == "debug" and not cls.VERBOSE:
             return
 
@@ -86,9 +109,13 @@ class Logger:
         """
         Set up logging to a file in addition to the console.
 
+        Configures the logger to output messages to both the console and a specified
+        file, optionally with a custom format string.
+
         Args:
-            log_file (str): Path to the log file
-            format_string (str, optional): Custom format string for log messages
+            log_file (str): Path to the log file where messages will be written
+            format_string (str, optional): Custom format string for log messages.
+                                          Defaults to a timestamp-prefixed format if None.
         """
         with cls._lock:
             logger = cls._get_logger()

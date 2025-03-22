@@ -7,6 +7,7 @@ Contains common utility functions used across the audio-to-text application.
 import os
 import re
 import yaml
+import unicodedata
 
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
@@ -48,6 +49,9 @@ def ensure_dir(directory: str) -> None:
 def sanitize_filename(filename: str) -> str:
     """
     Remove invalid characters from filenames for safe file system operations.
+    
+    Handles special characters and emojis to ensure consistent filename 
+    behavior across different operations and tools.
 
     Args:
         filename (str): Original filename potentially containing unsafe characters
@@ -55,6 +59,10 @@ def sanitize_filename(filename: str) -> str:
     Returns:
         str: Sanitized filename with invalid characters replaced by underscores
     """
+    # First remove emojis and other non-ASCII characters
+    filename = ''.join(c for c in filename if c.isascii() and (c.isprintable() or c.isspace()))
+    
+    # Then replace standard invalid filename characters with underscores
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
 
 

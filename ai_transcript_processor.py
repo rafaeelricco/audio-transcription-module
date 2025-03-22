@@ -1,7 +1,8 @@
 import os
 import argparse
-import yaml
-from typing import Dict, Any, Optional
+import sys
+
+from typing import Optional
 from dotenv import load_dotenv
 from logger import Logger
 from providers import OpenRouterProvider, GeminiProvider
@@ -14,14 +15,18 @@ def get_provider(provider_name: str):
     """
     Factory function to create provider instances by name.
 
+    Creates and returns an instance of the specified AI provider class.
+    This function implements the factory design pattern to encapsulate
+    provider instantiation logic.
+
     Args:
-        provider_name (str): Name of the provider to create
+        provider_name (str): Name of the provider to create (e.g., 'openrouter', 'gemini')
 
     Returns:
-        BaseProvider: Provider instance
+        BaseProvider: Provider instance of the requested type
 
     Raises:
-        ValueError: If provider is not supported
+        ValueError: If the specified provider is not supported
     """
     providers = {"openrouter": OpenRouterProvider, "gemini": GeminiProvider}
 
@@ -38,14 +43,18 @@ def load_prompt_template(template_name: str = "transcript_prompt.txt") -> str:
     """
     Load a prompt template from the templates directory.
 
+    Retrieves the content of a specific template file that will be used
+    to format prompts sent to AI providers.
+
     Args:
-        template_name (str): Name of the template file
+        template_name (str, optional): Name of the template file to load.
+                                      Defaults to "transcript_prompt.txt".
 
     Returns:
-        str: Template content
+        str: Template content as a string
 
     Raises:
-        FileNotFoundError: If template file doesn't exist
+        FileNotFoundError: If the specified template file doesn't exist in the templates directory
     """
     template_path = os.path.join("templates", template_name)
 
@@ -59,16 +68,21 @@ def load_prompt_template(template_name: str = "transcript_prompt.txt") -> str:
 
 def process_text(input_text: str) -> str:
     """
-    Process text using the configured AI provider
+    Process text using the configured AI provider.
+
+    Takes raw input text (typically a transcript) and processes it using
+    the configured AI provider to improve organization, formatting,
+    or other text qualities as defined in the prompt template.
 
     Args:
-        input_text (str): The text to be processed
+        input_text (str): The raw text to be processed by the AI provider
 
     Returns:
-        str: Processed text
+        str: Processed and enhanced text from the AI provider
 
     Raises:
-        ValueError: If processing fails
+        ValueError: If processing fails due to configuration issues, API errors,
+                   or empty responses from the provider
     """
     try:
         config = load_config()
@@ -114,14 +128,17 @@ def read_file(file_path: str) -> str:
     """
     Read content from a text file.
 
+    Safely reads and returns the content of a text file with proper error handling.
+
     Args:
-        file_path (str): Path to the text file
+        file_path (str): Path to the text file to read
 
     Returns:
-        str: Content of the file
+        str: Content of the file as a string
 
     Raises:
-        ValueError: If file cannot be read
+        ValueError: If the file cannot be read due to permissions, encoding issues,
+                  or if the file doesn't exist
     """
     try:
         Logger.log(True, f"Reading file: {file_path}")
@@ -139,12 +156,15 @@ def save_processed_text(processed_text: str, input_file_path: str) -> Optional[s
     """
     Save the processed text to a markdown file.
 
+    Creates a new markdown file containing the processed text, using the
+    original input file name as a base for the output filename.
+
     Args:
-        processed_text (str): The processed text to save
+        processed_text (str): The processed text to save to file
         input_file_path (str): Original input file path (used to generate output filename)
 
     Returns:
-        str: Path to the saved file or None if saving failed
+        Optional[str]: Path to the saved file, or None if saving failed
     """
     try:
         base_name = os.path.basename(input_file_path)
@@ -167,7 +187,15 @@ def save_processed_text(processed_text: str, input_file_path: str) -> Optional[s
 
 def main() -> None:
     """
-    Main function to process text from a file using command-line arguments.
+    Main function to process text files using command-line arguments.
+
+    Provides a command-line interface for the text processing functionality.
+    This function parses command-line arguments, processes the specified file,
+    and outputs the result to a new file or displays it if saving fails.
+
+    Command-line arguments:
+        --file, -f: Path to the text file to process (required)
+        --verbose, -v: Enable verbose logging (optional)
     """
     parser = argparse.ArgumentParser(description="Process text files using AI")
     parser.add_argument(
@@ -203,12 +231,20 @@ def main() -> None:
         Logger.log(False, "Process interrupted by user", "warning")
         print("\nProcess interrupted by user. Exiting gracefully...")
 
-    except Exception as e:
+    except ValueError as e:
         if hasattr(e, "args") and isinstance(e.args[0], dict):
-            error = e.args[0]
-            Logger.log(False, f"{error['type']}: {error['message']}", "error")
+            error_data = e.args[0]
+            Logger.log(
+                False,
+                f"{error_data['type']}: {error_data['message']}",
+                "error",
+            )
         else:
             Logger.log(False, f"Error: {str(e)}", "error")
+        sys.exit(1)
+    except Exception as e:
+        Logger.log(False, f"Unexpected error: {str(e)}", "error")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
