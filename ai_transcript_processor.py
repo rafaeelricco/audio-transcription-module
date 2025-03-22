@@ -36,80 +36,33 @@ def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
         )
 
         prompt = f"""
-        # Guia de Estruturação para Resumos Eficientes
+        Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown. Completely adapt the structure based on the specific content, following these general guidelines:
+
+        1. Determine the most appropriate main title that captures the essence of the content.
+
+        2. Structure the article with logical and fluid sections, creating relevant subtitles that organically reflect the main themes of the content. Do not use predefined structures, but completely adapt to the specific material.
+
+        3. Begin with a contextual introduction that presents the general overview of the subject, establishing the tone and scope of the content.
+
+        4. Develop the body of the article cohesively, grouping related information into natural thematic sections. Determine if the content benefits more from:
+        - Narrative paragraphs for conceptual content
+        - Bullet lists for discrete points
+        - Numbered sequences for processes or steps
+        - Comparisons for different perspectives or approaches
+
+        5. When relevant, include a section highlighting practical applications, benefits, main results, or implications.
+
+        6. Conclude with a synthesis that connects the main points and offers perspective on the overall value of the content.
+
+        Use Markdown formatting to highlight important elements:
+        - **Bold** for key concepts
+        - Hierarchical subtitles (# ## ###) for visual organization
+        - Lists and bullets when appropriate to facilitate reading
+        - Direct quotations only when essential to preserve the exact meaning
+
+        The final format should be clean, professional, and pleasant to read, similar to a well-structured article. Completely adapt the approach to the specific type of content, whether it is educational, tutorial, interview, debate, presentation, or any other format.
         
-        ## Estrutura Geral do Documento
-        - Crie um documento estruturado dividido em seções claras e hierárquicas
-        - Utilize hierarquia de títulos com até 3 níveis (# Título, ## Subtítulo, ### Tópico)
-        - Adicione um sumário no início com links para navegação rápida entre seções
-        - Mantenha o resumo conciso (aproximadamente 25% do conteúdo original)
-        - Organize as informações em ordem lógica e progressiva
-        
-        ## Métodos de Estruturação Recomendados
-        1. **Método Cornell**: Divida o conteúdo em três áreas:
-           - Coluna da esquerda: Palavras-chave, conceitos e perguntas (1/3 da largura)
-           - Coluna principal: Conteúdo detalhado e explicações (2/3 da largura)
-           - Seção inferior: Sumário que sintetiza os pontos principais da página
-        
-        2. **Estrutura Hierárquica**:
-           - Inicie com conceitos principais, dividindo em subtópicos
-           - Utilize numeração automática e sistemática (1.1, 1.2, 2.1, etc.)
-           - Mantenha consistência na profundidade dos tópicos
-           - Agrupe informações relacionadas sob o mesmo tópico
-        
-        3. **Estrutura em Mapa Mental**:
-           - Conceito principal no centro do documento
-           - Ramificações primárias para temas principais
-           - Ramificações secundárias para subtemas
-           - Conexões visuais entre conceitos relacionados
-        
-        ## Elementos Visuais para Melhorar a Estrutura
-        - **Listas numeradas**: Para sequências, processos, ou hierarquias
-        - **Listas com marcadores**: Para itens sem ordem específica
-        - **Tabelas**: Para comparações ou dados estruturados
-        - **Diagramas** (usando Mermaid.js): Para visualização de processos e relações
-        - **Blocos de destaque**: Para enfatizar informações críticas
-        
-        ## Formatação para Clareza Estrutural
-        - Use **negrito** para termos-chave e conceitos importantes
-        - Aplique *itálico* para ênfase e definições
-        - Utilize `código` para termos técnicos ou comandos
-        - Empregue > citações para referências importantes
-        - Aplique destaque de cores para categorização visual:
-          * ✓ Conceitos confirmados/corretos
-          * ⚠️ Pontos de atenção ou controverérsia
-          * ✗ Erros comuns ou conceitos incorretos
-        
-        ## Estrutura Específica de Saída
-        Organize seu resumo com as seguintes seções estruturais:
-        
-        1. **TÍTULO PRINCIPAL**: Nome claro do tema principal (heading nível 1)
-        
-        2. **CONCEITO PRINCIPAL**: 
-           - Definição clara e concisa do tema central
-           - Evite mais de 3-5 linhas nesta seção
-        
-        3. **CAUSAS/ORIGENS**: 
-           - Liste fatores principais numerados por importância
-           - Mantenha formato consistente para cada item
-        
-        4. **EVIDÊNCIAS/DADOS**: 
-           - Apresente dados concretos e mensuráveis
-           - Use formatação visual para números e estatísticas
-        
-        5. **IMPACTOS/CONSEQUÊNCIAS**: 
-           - Divida por categorias ou áreas afetadas
-           - Use marcadores consistentes para facilitar leitura
-        
-        6. **SOLUÇÕES/APLICAÇÕES**: 
-           - Organize em abordagens práticas e teóricas
-           - Numere por prioridade ou eficácia
-        
-        7. **PERGUNTAS-CHAVE**: 
-           - Formule 3-5 perguntas para revisão e reflexão
-           - Assegure que cubram diferentes níveis de complexidade
-        
-        Aplique esta estrutura ao seguinte texto, mantendo formatação Markdown adequada:
+        Apply this structure to the following text:
         {input_text}
         """
 

@@ -52,12 +52,19 @@ def transcribe_audio(input_path, output_path=None, device=None):
 
         Logger.log(True, "Processing audio file")
         audio = whisper.load_audio(input_path["file_path"])
-        audio = whisper.pad_or_trim(audio)
+
         if not isinstance(audio, np.ndarray):
             raise ValueError("Invalid audio format")
 
-        Logger.log(True, "Transcribing audio")
-        result = model.transcribe(audio, fp16=fp16)
+        Logger.log(True, "Transcribing complete audio")
+        result = model.transcribe(
+            audio,
+            fp16=fp16,
+            verbose=True,
+            temperature=0.3,
+            no_speech_threshold=0.6,
+            condition_on_previous_text=True,
+        )
 
         if output_path:
             Logger.log(True, "Saving transcription")
