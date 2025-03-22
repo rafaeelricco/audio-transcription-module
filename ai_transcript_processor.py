@@ -1,40 +1,38 @@
 import os
 import argparse
-from openai import OpenAI
+import yaml
 from dotenv import load_dotenv
 from logger import Logger
+from providers import OpenRouterProvider, GeminiProvider
 
 load_dotenv()
 
 
-def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
+def process_text(input_text):
     """
-    Process text using an AI model via OpenRouter API.
+    Process text using the configured AI provider
 
     Args:
         input_text (str): The text to be processed
-        model (str): The AI model to use for processing
 
     Returns:
-        str: Processed text or None if an error occurs
+        str: Processed text or None if error
 
     Raises:
         dict: Error information containing 'type' and 'message'
     """
     try:
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
-            raise ValueError(
-                {
-                    "type": "Configuration Error",
-                    "message": "OPENROUTER_API_KEY environment variable not found",
-                }
-            )
+        with open("config.yml") as f:
+            config = yaml.safe_load(f)
 
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=api_key,
-        )
+        provider_name = config["default_provider"]
+
+        if provider_name == "openrouter":
+            provider = OpenRouterProvider()
+        elif provider_name == "gemini":
+            provider = GeminiProvider()
+        else:
+            raise ValueError(f"Unknown provider: {provider_name}")
 
         prompt = f"""
         Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown without any Markdown code block tags (```). Completely adapt the structure based on the specific content, following these general guidelines:
@@ -70,19 +68,14 @@ def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
 
         Logger.log(True, "Sending request to AI model...")
 
-        completion = client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}]
-        )
+        processed_text = provider.generate_content(prompt)
+
         Logger.log(True, "Request confirmed by API")
 
         Logger.log(True, "Processing AI response...")
 
-        if not completion or not completion.choices or len(completion.choices) == 0:
-            raise ValueError(
-                {"type": "API Error", "message": "Invalid response from OpenRouter API"}
-            )
         Logger.log(True, "Processing completed")
-        return completion.choices[0].message.content
+        return processed_text
 
     except Exception as e:
         if hasattr(e, "args") and isinstance(e.args[0], dict):
@@ -91,7 +84,7 @@ def process_text(input_text, model="google/gemini-2.0-flash-thinking-exp:free"):
             raise ValueError(
                 {
                     "type": "Processing Error",
-                    "message": f"Error processing text with OpenRouter: {str(e)}",
+                    "message": f"Error processing text with AI provider: {str(e)}",
                 }
             )
 
@@ -132,12 +125,10 @@ def save_processed_text(processed_text, input_file_path):
         str: Path to the saved file
     """
     try:
-        # Generate output filename based on input filename
         base_name = os.path.basename(input_file_path)
         name_without_ext = os.path.splitext(base_name)[0]
         output_dir = os.path.join(os.path.dirname(input_file_path))
 
-        # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
 
         output_file = os.path.join(output_dir, f"{name_without_ext}_processed.md")
@@ -160,24 +151,15 @@ def main():
     parser.add_argument(
         "--file", "-f", required=True, help="Path to the text file to process"
     )
-    parser.add_argument(
-        "--model",
-        "-m",
-        default="google/gemini-2.0-flash-thinking-exp:free",
-        help="AI model to use for processing",
-    )
 
     args = parser.parse_args()
 
     try:
-        # Read the file content
         file_content = read_file(args.file)
 
-        # Process the text
         Logger.log(True, f"Processing text from file: {args.file}")
-        processed_text = process_text(file_content, model=args.model)
+        processed_text = process_text(file_content)
 
-        # Save the processed text
         output_file = save_processed_text(processed_text, args.file)
 
         if output_file:
