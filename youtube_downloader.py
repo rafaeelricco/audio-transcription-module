@@ -31,8 +31,8 @@ import json
 import subprocess
 import shutil
 import re
-from logger import Logger
 
+from logger import Logger
 from urllib.parse import urlparse, parse_qs
 
 
@@ -69,11 +69,6 @@ class YouTubeDownloader:
         if tools are missing.
         """
         self.has_wget = shutil.which("wget") is not None
-        # if not self.has_wget:
-        #     print("Note: wget is not installed. Will use yt-dlp for downloads instead.")
-        #     print(
-        #         "To install wget (optional): brew install wget (macOS) or apt-get install wget (Ubuntu/Debian)"
-        #     )
 
         if not shutil.which("yt-dlp"):
             print("Error: yt-dlp is not installed. This module requires yt-dlp.")
@@ -197,7 +192,7 @@ class YouTubeDownloader:
 
             height = None
             if resolution != "highest" and resolution.endswith("p"):
-                height = resolution[:-1]  # Remove the 'p' to get just the number
+                height = resolution[:-1]
 
             format_selector = "bestvideo+bestaudio/best"
             if height:
@@ -464,7 +459,6 @@ if __name__ == "__main__":
             Logger.log(True, f"Title: {result['title']}")
             Logger.log(True, f"Saved to: {result['file_path']}")
         else:
-            # Error already printed in the download_audio_only method
             pass
     else:
         Logger.log(True, f"Downloading video from: {args.url}")
@@ -473,5 +467,4 @@ if __name__ == "__main__":
             Logger.log(True, f"Title: {result['title']}")
             Logger.log(True, f"Saved to: {result['file_path']}")
         else:
-            # Error already printed in the download_video method
             pass
