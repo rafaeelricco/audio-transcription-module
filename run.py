@@ -30,28 +30,24 @@ Basic usage:
 import sys
 import os
 import torch
-import warnings
 import glob
 import whisper
-from pathlib import Path
 import numpy as np
 
 from argparse import ArgumentParser
+from pathlib import Path
 from logger import Logger
 from ai_transcript_processor import process_text
 
 
 def transcribe_audio(input_path, output_path=None, device=None):
     try:
-        # Determine the best device to use
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Set appropriate floating point precision based on device
         fp16 = device != "cpu"
 
         Logger.log(True, "Loading Whisper model")
-        # Load the model with the appropriate device and precision settings
         model = whisper.load_model("turbo", device=device, in_memory=True)
 
         Logger.log(True, "Processing audio file")
@@ -61,7 +57,6 @@ def transcribe_audio(input_path, output_path=None, device=None):
             raise ValueError("Invalid audio format")
 
         Logger.log(True, "Transcribing audio")
-        # Pass fp16 parameter to transcribe method, not to load_model
         result = model.transcribe(audio, fp16=fp16)
 
         if output_path:
@@ -81,15 +76,12 @@ def transcribe_audio(input_path, output_path=None, device=None):
 def save_and_process_transcript(transcript_text, output_path=None, file_name=None):
     """Save transcript and process with AI"""
     try:
-        # Ensure dist directory exists
         os.makedirs("dist", exist_ok=True)
 
-        # Determine output path for raw transcript
         if output_path:
             raw_path = output_path
             base_output_path = os.path.splitext(output_path)[0]
         else:
-            # Create a default filename if none provided
             safe_name = "transcript"
             if file_name:
                 safe_name = "".join(
@@ -98,7 +90,6 @@ def save_and_process_transcript(transcript_text, output_path=None, file_name=Non
             base_output_path = f"dist/{safe_name}"
             raw_path = f"{base_output_path}.txt"
 
-        # Save raw transcript
         Logger.log(True, "Saving raw transcript")
         with open(raw_path, "w", encoding="utf-8") as f:
             f.write(transcript_text)
@@ -148,43 +139,52 @@ def main():
         default="auto",
         help="Device to use for processing (cpu, cuda, or auto for automatic detection)",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Ativar modo detalhado para depuração",
+    )
     args = parser.parse_args()
 
     os.environ["WHISPER_CACHE_DIR"] = str(Path("./cache").absolute())
     Path("./cache").mkdir(exist_ok=True)
 
-    # Determine device based on user preference and availability
     device = None
     if args.device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     elif args.device == "cuda" and not torch.cuda.is_available():
         Logger.log(False, "GPU not available")
-        print("\n⚠️ GPU requested but not available, falling back to CPU")
+        Logger.log(False, "GPU requested but not available, falling back to CPU")
         device = "cpu"
     else:
         device = args.device
 
-    print(f"\n✓ Using device: {device}")
+    Logger.log(True, f"Using device: {device}")
+
+    if args.verbose:
+        Logger.set_verbose(True)
 
     if args.youtube:
         from youtube_downloader import YouTubeDownloader
 
         Logger.log(True, "Initializing YouTube downloader")
         downloader = YouTubeDownloader()
-        
+
         Logger.log(True, "Downloading audio from YouTube")
         audio_path = downloader.download_audio_only(args.youtube)
 
         if not audio_path.get("success", False):
             Logger.log(False, "YouTube download failed")
-            print(f"\n✗ Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}")
+            print(
+                f"\n✗ Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}"
+            )
             return False
 
         Logger.log(True, "Preparing for transcription")
         transcript_result = transcribe_audio(audio_path, None, device)
 
         if transcript_result:
-            # Save transcript and process with AI if requested
             file_name = audio_path.get("title", "youtube_transcript")
             save_and_process_transcript(
                 transcript_result["text"], args.output, file_name
@@ -219,25 +219,19 @@ def main():
         Logger.log(True, f"Processing file {index+1}/{len(expanded_files)}")
         print(f"\n✓ Transcribing audio file {index+1}/{len(expanded_files)}...")
 
-        # Determine output path for this file
         file_output = None
         if args.output:
             if len(expanded_files) > 1 and not args.output.endswith((".txt", ".md")):
-                # If output is a directory, create one file per input
                 os.makedirs(args.output, exist_ok=True)
                 file_base = os.path.splitext(os.path.basename(file))[0]
                 file_output = os.path.join(args.output, f"{file_base}.txt")
             else:
-                # Use the specified output directly
                 file_output = args.output
 
         transcript_result = transcribe_audio({"file_path": file}, None, device)
 
         if transcript_result:
-            # Extract filename without extension for naming
             file_name = os.path.splitext(os.path.basename(file))[0]
-
-            # Save transcript and process with AI if requested
             save_and_process_transcript(
                 transcript_result["text"], file_output, file_name
             )

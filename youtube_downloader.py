@@ -240,24 +240,52 @@ class YouTubeDownloader:
                     "--no-playlist",
                     url,
                 ]
-                subprocess.run(ytdlp_cmd, check=True)
+                process = subprocess.Popen(
+                    ytdlp_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                )
+
+                for line in iter(process.stdout.readline, ""):
+                    line = line.strip()
+                    if line.startswith("[youtube]") or line.startswith("[info]"):
+                        Logger.log(True, line, nivel="debug")
+                    elif line.startswith("[download]"):
+                        if "has already been downloaded" in line:
+                            Logger.log(
+                                True,
+                                "Arquivo já existe: " + line.split(" ")[1],
+                                nivel="info",
+                            )
+                        else:
+                            Logger.log(True, line, nivel="debug")
+
+                process.wait()
 
             Logger.log(True, "Download complete")
-            print(f"\n✓ Video downloaded successfully to: {output_file}")
+            Logger.log(True, f"Video saved to: {output_file}")
             return {"success": True, "file_path": output_file, "title": info["title"]}
 
         except subprocess.CalledProcessError as e:
             Logger.log(False, "Download failed")
             error_msg = e.stderr if hasattr(e, "stderr") else str(e)
-            print(f"\n✗ Download failed: {error_msg}")
+            Logger.log(False, f"Error during download: {error_msg}")
             return {
                 "success": False,
                 "error": f"Error: {error_msg}",
                 "file_path": None,
             }
+        except KeyboardInterrupt:
+            Logger.log(False, "Download interrompido pelo usuário")
+            return {
+                "success": False,
+                "error": "Interrupção do usuário",
+                "file_path": None,
+            }
         except Exception as e:
             Logger.log(False, "Download failed")
-            print(f"\n✗ Download failed: {str(e)}")
+            Logger.log(False, f"Unexpected error: {str(e)}")
             return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
 
     def download_audio_only(self, url):
@@ -315,24 +343,52 @@ class YouTubeDownloader:
                     "--no-playlist",
                     url,
                 ]
-                subprocess.run(ytdlp_cmd, check=True)
+                process = subprocess.Popen(
+                    ytdlp_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                )
+
+                for line in iter(process.stdout.readline, ""):
+                    line = line.strip()
+                    if line.startswith("[youtube]") or line.startswith("[info]"):
+                        Logger.log(True, line, nivel="debug")
+                    elif line.startswith("[download]"):
+                        if "has already been downloaded" in line:
+                            Logger.log(
+                                True,
+                                "Arquivo já existe: " + line.split(" ")[1],
+                                nivel="info",
+                            )
+                        else:
+                            Logger.log(True, line, nivel="debug")
+
+                process.wait()
 
             Logger.log(True, "Download complete")
-            print(f"\n✓ Audio downloaded successfully to: {output_file}")
+            Logger.log(True, f"Audio saved to: {output_file}")
             return {"success": True, "file_path": output_file, "title": info["title"]}
 
         except subprocess.CalledProcessError as e:
             Logger.log(False, "Download failed")
             error_msg = e.stderr if hasattr(e, "stderr") else str(e)
-            print(f"\n✗ Audio download failed: {error_msg}")
+            Logger.log(False, f"Error during download: {error_msg}")
             return {
                 "success": False,
                 "error": f"Error: {error_msg}",
                 "file_path": None,
             }
+        except KeyboardInterrupt:
+            Logger.log(False, "Download interrompido pelo usuário")
+            return {
+                "success": False,
+                "error": "Interrupção do usuário",
+                "file_path": None,
+            }
         except Exception as e:
             Logger.log(False, "Download failed")
-            print(f"\n✗ Audio download failed: {str(e)}")
+            Logger.log(False, f"Unexpected error: {str(e)}")
             return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
 
     def download(self, url):
@@ -389,33 +445,33 @@ if __name__ == "__main__":
         info = downloader.get_video_info(args.url)
         if info["success"]:
             Logger.log(True, "Video information retrieved")
-            print(f"\n✓ Video information retrieved successfully:")
-            print(f"  Title: {info['title']}")
-            print(f"  Author: {info['author']}")
-            print(f"  Length: {info['length']} seconds")
-            print(f"  Thumbnail: {info['thumbnail_url']}")
-            print(
-                f"  Available resolutions: {', '.join(info['available_resolutions'])}"
+            Logger.log(True, f"Title: {info['title']}")
+            Logger.log(True, f"Author: {info['author']}")
+            Logger.log(True, f"Length: {info['length']} seconds")
+            Logger.log(True, f"Thumbnail: {info['thumbnail_url']}")
+            Logger.log(
+                True,
+                f"Available resolutions: {', '.join(info['available_resolutions'])}",
             )
-            print(f"  Views: {info['views']}")
+            Logger.log(True, f"Views: {info['views']}")
         else:
             Logger.log(False, "Failed to get video information")
-            print(f"\n✗ Failed to get video info: {info['error']}")
+            Logger.log(False, f"Error: {info['error']}")
     elif args.audio_only:
         Logger.log(True, f"Downloading audio from: {args.url}")
         result = downloader.download_audio_only(args.url)
         if result["success"]:
-            print(f"  Title: {result['title']}")
-            print(f"  Saved to: {result['file_path']}")
+            Logger.log(True, f"Title: {result['title']}")
+            Logger.log(True, f"Saved to: {result['file_path']}")
         else:
             # Error already printed in the download_audio_only method
             pass
     else:
         Logger.log(True, f"Downloading video from: {args.url}")
-        result = downloader.download(args.url)
+        result = downloader.download_video(args.url, resolution=args.resolution)
         if result["success"]:
-            print(f"  Title: {result['title']}")
-            print(f"  Saved to: {result['file_path']}")
+            Logger.log(True, f"Title: {result['title']}")
+            Logger.log(True, f"Saved to: {result['file_path']}")
         else:
-            # Error already printed in the download method
+            # Error already printed in the download_video method
             pass
