@@ -30,10 +30,16 @@ import os
 import json
 import subprocess
 import shutil
-import re
+from typing import Dict, Any
 
 from logger import Logger
-from urllib.parse import urlparse, parse_qs
+from utils import sanitize_filename, get_youtube_video_id, ensure_dir
+
+
+class DownloadError(Exception):
+    """Exception raised for errors during YouTube download operations."""
+
+    pass
 
 
 class YouTubeDownloader:
@@ -45,73 +51,41 @@ class YouTubeDownloader:
     and organize downloads in customizable directories.
     """
 
-    def __init__(self, output_path="downloads"):
+    def __init__(self, output_path: str = "downloads"):
         """
         Initialize the YouTubeDownloader with specified output directory.
 
         Args:
             output_path (str): Target directory where audio files will be saved.
                                Defaults to "downloads" in current directory.
+
+        Raises:
+            ImportError: If required dependencies are not installed
         """
         self.output_path = output_path
-
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
+        ensure_dir(output_path)
         self._check_requirements()
 
-    def _check_requirements(self):
+    def _check_requirements(self) -> None:
         """
         Verify that required external tools are available on the system.
 
         Checks for yt-dlp (required) and wget (optional) availability,
         setting appropriate flags and displaying installation instructions
         if tools are missing.
+
+        Raises:
+            ImportError: If yt-dlp is not installed
         """
         self.has_wget = shutil.which("wget") is not None
 
         if not shutil.which("yt-dlp"):
-            print("Error: yt-dlp is not installed. This module requires yt-dlp.")
-            print("Please install it using: pip install yt-dlp")
+            error_msg = "yt-dlp is not installed. This module requires yt-dlp."
+            Logger.log(False, error_msg, "error")
+            Logger.log(False, "Please install it using: pip install yt-dlp", "error")
             raise ImportError("yt-dlp is required but not installed")
 
-    def _sanitize_filename(self, filename):
-        """
-        Remove invalid characters from filenames for safe file system operations.
-
-        Args:
-            filename (str): Original filename potentially containing unsafe characters
-
-        Returns:
-            str: Sanitized filename with invalid characters replaced by underscores
-        """
-        return re.sub(r'[\\/*?:"<>|]', "_", filename)
-
-    def _get_video_id(self, url):
-        """
-        Parse a YouTube URL to extract the unique video identifier.
-
-        Handles various YouTube URL formats including youtu.be short links
-        and standard youtube.com URLs with query parameters.
-
-        Args:
-            url (str): YouTube video URL in any standard format
-
-        Returns:
-            str: YouTube video ID or None if the URL format is unrecognized
-        """
-        parsed_url = urlparse(url)
-
-        if parsed_url.netloc in ("youtu.be", "www.youtu.be"):
-            return parsed_url.path[1:]
-
-        if parsed_url.netloc in ("youtube.com", "www.youtube.com"):
-            query_params = parse_qs(parsed_url.query)
-            return query_params.get("v", [None])[0]
-
-        return None
-
-    def get_video_info(self, url):
+    def get_video_info(self, url: str) -> Dict[str, Any]:
         """
         Retrieve comprehensive metadata about a YouTube video.
 
@@ -132,8 +106,18 @@ class YouTubeDownloader:
                 - views: View count
                 - rating: Average rating
                 Or error details if unsuccessful
+
+        Raises:
+            DownloadError: If video information cannot be retrieved
         """
         try:
+            video_id = get_youtube_video_id(url)
+            if not video_id:
+                Logger.log(False, f"Invalid YouTube URL: {url}", "error")
+                return {"success": False, "error": f"Invalid YouTube URL: {url}"}
+
+            Logger.log(True, f"Getting info for video ID: {video_id}", "debug")
+
             cmd = ["yt-dlp", "--dump-json", url]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
@@ -158,13 +142,22 @@ class YouTubeDownloader:
                 ),
                 "views": info.get("view_count", 0),
                 "rating": info.get("average_rating", 0),
+                "video_id": video_id,
             }
         except subprocess.CalledProcessError as e:
-            return {"success": False, "error": f"Error getting video info: {e.stderr}"}
+            error_msg = f"Error getting video info: {e.stderr}"
+            Logger.log(False, error_msg, "error")
+            return {"success": False, "error": error_msg}
+        except json.JSONDecodeError as e:
+            error_msg = f"Error parsing video info: {str(e)}"
+            Logger.log(False, error_msg, "error")
+            return {"success": False, "error": error_msg}
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            error_msg = f"Unexpected error retrieving video info: {str(e)}"
+            Logger.log(False, error_msg, "error")
+            return {"success": False, "error": error_msg}
 
-    def download_video(self, url, resolution="highest"):
+    def download_video(self, url: str, resolution: str = "highest") -> Dict[str, Any]:
         """
         Download a complete YouTube video with audio and video tracks.
 
@@ -179,16 +172,19 @@ class YouTubeDownloader:
                 - file_path (str): Path to downloaded file if successful
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
+
+        Raises:
+            DownloadError: If the download fails
         """
         try:
             Logger.log(True, "Getting video information")
             info = self.get_video_info(url)
             if not info["success"]:
-                Logger.log(False, "Failed to get video information")
+                Logger.log(False, "Failed to get video information", "error")
                 return info
 
             Logger.log(True, f"Video found: {info['title']}")
-            Logger.log(True, "Video details")
+            Logger.log(True, "Video details", "debug")
 
             height = None
             if resolution != "highest" and resolution.endswith("p"):
@@ -203,92 +199,62 @@ class YouTubeDownloader:
                 else:
                     Logger.log(
                         False,
-                        f"Resolution {resolution} not available. Using highest available resolution.",
+                        f"Requested resolution {resolution} not available. Using best available.",
+                        "warning",
                     )
 
-            Logger.log(True, "Preparing download")
-            cmd = ["yt-dlp", "-f", format_selector, "-g", url]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            direct_url = result.stdout.strip()
+            safe_title = sanitize_filename(info["title"])
+            output_filename = f"{safe_title}.mp4"
+            output_path = os.path.join(self.output_path, output_filename)
 
-            safe_title = self._sanitize_filename(info["title"])
-            output_file = os.path.join(self.output_path, f"{safe_title}.mp4")
+            Logger.log(True, f"Downloading video to: {output_path}")
+            cmd = [
+                "yt-dlp",
+                "-f",
+                format_selector,
+                "-o",
+                output_path,
+                "--no-playlist",
+                url,
+            ]
 
-            Logger.log(True, f"Downloading video: {resolution}")
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
 
-            if self.has_wget:
-                wget_cmd = [
-                    "wget",
-                    "-O",
-                    output_file,
-                    "--progress=bar:force",
-                    direct_url,
-                ]
-                subprocess.run(wget_cmd, check=True)
-            else:
-                ytdlp_cmd = [
-                    "yt-dlp",
-                    "-f",
-                    format_selector,
-                    "-o",
-                    output_file,
-                    "--no-playlist",
-                    url,
-                ]
-                process = subprocess.Popen(
-                    ytdlp_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                )
+            # Monitor download progress
+            while True:
+                output = process.stdout.readline()
+                if output == "" and process.poll() is not None:
+                    break
+                if output:
+                    Logger.log(True, output.strip(), "debug")
 
-                for line in iter(process.stdout.readline, ""):
-                    line = line.strip()
-                    if line.startswith("[youtube]") or line.startswith("[info]"):
-                        Logger.log(True, line, nivel="debug")
-                    elif line.startswith("[download]"):
-                        if "has already been downloaded" in line:
-                            Logger.log(
-                                True,
-                                "Arquivo já existe: " + line.split(" ")[1],
-                                nivel="info",
-                            )
-                        else:
-                            Logger.log(True, line, nivel="debug")
+            return_code = process.poll()
+            if return_code != 0:
+                stderr = process.stderr.read()
+                error_msg = f"Download failed with code {return_code}: {stderr}"
+                Logger.log(False, error_msg, "error")
+                return {"success": False, "error": error_msg}
 
-                process.wait()
-
-            Logger.log(True, "Download complete")
-            Logger.log(True, f"Video saved to: {output_file}")
-            return {"success": True, "file_path": output_file, "title": info["title"]}
-
-        except subprocess.CalledProcessError as e:
-            Logger.log(False, "Download failed")
-            error_msg = e.stderr if hasattr(e, "stderr") else str(e)
-            Logger.log(False, f"Error during download: {error_msg}")
+            Logger.log(True, "Download completed successfully")
             return {
-                "success": False,
-                "error": f"Error: {error_msg}",
-                "file_path": None,
+                "success": True,
+                "file_path": output_path,
+                "title": info["title"],
             }
-        except KeyboardInterrupt:
-            Logger.log(False, "Download interrompido pelo usuário")
-            return {
-                "success": False,
-                "error": "Interrupção do usuário",
-                "file_path": None,
-            }
+
         except Exception as e:
-            Logger.log(False, "Download failed")
-            Logger.log(False, f"Unexpected error: {str(e)}")
-            return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
+            error_msg = f"Download error: {str(e)}"
+            Logger.log(False, error_msg, "error")
+            return {"success": False, "error": error_msg}
 
-    def download_audio_only(self, url):
+    def download_audio_only(self, url: str) -> Dict[str, Any]:
         """
-        Extract and download only the audio track from a YouTube video.
+        Download only the audio track from a YouTube video.
 
-        Optimized for transcription workflows, this method saves disk space
-        by downloading only the audio component in MP3 format.
+        This method is optimized for transcription workflows, extracting
+        just the audio in a high-quality format suitable for speech recognition.
 
         Args:
             url (str): YouTube video URL
@@ -299,172 +265,141 @@ class YouTubeDownloader:
                 - file_path (str): Path to downloaded file if successful
                 - title (str): Video title if successful
                 - error (str): Error details if unsuccessful
+
+        Raises:
+            DownloadError: If the download fails
         """
         try:
-            Logger.log(True, "Getting video information")
+            video_id = get_youtube_video_id(url)
+            if not video_id:
+                error_msg = f"Invalid YouTube URL: {url}"
+                Logger.log(False, error_msg, "error")
+                return {"success": False, "error": error_msg}
+
+            Logger.log(True, f"Processing YouTube URL: {url}", "debug")
+            Logger.log(True, f"Extracted video ID: {video_id}", "debug")
+
             info = self.get_video_info(url)
             if not info["success"]:
-                Logger.log(False, "Failed to get video information")
                 return info
 
-            Logger.log(True, f"Video found: {info['title']}")
+            title = info["title"]
+            safe_title = sanitize_filename(title)
+            output_filename = f"{safe_title}.mp3"
+            output_path = os.path.join(self.output_path, output_filename)
 
-            Logger.log(True, "Preparing audio extraction")
-            cmd = ["yt-dlp", "-f", "bestaudio", "-g", url]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            direct_url = result.stdout.strip()
+            Logger.log(True, f"Downloading audio from: {title}")
+            Logger.log(True, f"Output will be saved to: {output_path}")
 
-            safe_title = self._sanitize_filename(info["title"])
-            output_file = os.path.join(self.output_path, f"{safe_title}.mp3")
+            # Extract audio using yt-dlp
+            cmd = [
+                "yt-dlp",
+                "-f",
+                "bestaudio",
+                "-x",  # Extract audio
+                "--audio-format",
+                "mp3",
+                "--audio-quality",
+                "0",  # Best quality
+                "-o",
+                output_path,
+                "--no-playlist",
+                "--progress",
+                url,
+            ]
 
-            Logger.log(True, f"Downloading audio")
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
 
-            if self.has_wget:
-                wget_cmd = [
-                    "wget",
-                    "-O",
-                    output_file,
-                    "--progress=bar:force",
-                    direct_url,
-                ]
-                subprocess.run(wget_cmd, check=True)
-            else:
-                ytdlp_cmd = [
-                    "yt-dlp",
-                    "-f",
-                    "bestaudio",
-                    "-o",
-                    output_file,
-                    "--no-playlist",
-                    url,
-                ]
-                process = subprocess.Popen(
-                    ytdlp_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                )
+            # Monitor download progress
+            while True:
+                output = process.stdout.readline()
+                if output == "" and process.poll() is not None:
+                    break
+                if output:
+                    print(f"\r{output.strip()}", end="")
 
-                for line in iter(process.stdout.readline, ""):
-                    line = line.strip()
-                    if line.startswith("[youtube]") or line.startswith("[info]"):
-                        Logger.log(True, line, nivel="debug")
-                    elif line.startswith("[download]"):
-                        if "has already been downloaded" in line:
-                            Logger.log(
-                                True,
-                                "Arquivo já existe: " + line.split(" ")[1],
-                                nivel="info",
-                            )
-                        else:
-                            Logger.log(True, line, nivel="debug")
+            return_code = process.poll()
+            if return_code != 0:
+                stderr = process.stderr.read()
+                error_msg = f"Download failed with code {return_code}: {stderr}"
+                Logger.log(False, error_msg, "error")
+                return {"success": False, "error": error_msg}
 
-                process.wait()
-
-            Logger.log(True, "Download complete")
-            Logger.log(True, f"Audio saved to: {output_file}")
-            return {"success": True, "file_path": output_file, "title": info["title"]}
-
-        except subprocess.CalledProcessError as e:
-            Logger.log(False, "Download failed")
-            error_msg = e.stderr if hasattr(e, "stderr") else str(e)
-            Logger.log(False, f"Error during download: {error_msg}")
+            Logger.log(True, "Download completed successfully")
             return {
-                "success": False,
-                "error": f"Error: {error_msg}",
-                "file_path": None,
+                "success": True,
+                "file_path": output_path,
+                "title": title,
             }
-        except KeyboardInterrupt:
-            Logger.log(False, "Download interrompido pelo usuário")
-            return {
-                "success": False,
-                "error": "Interrupção do usuário",
-                "file_path": None,
-            }
+
         except Exception as e:
-            Logger.log(False, "Download failed")
-            Logger.log(False, f"Unexpected error: {str(e)}")
-            return {"success": False, "error": f"Error: {str(e)}", "file_path": None}
-
-    def download(self, url):
-        """
-        Primary download method that extracts audio from YouTube videos.
-
-        This is the recommended entry point for most use cases, as it
-        focuses on audio extraction for transcription workflows.
-
-        Args:
-            url (str): YouTube video URL
-
-        Returns:
-            dict: Operation result with download status and file details
-                  (See download_audio_only for returned dictionary structure)
-        """
-        return self.download_audio_only(url)
+            error_msg = f"Download error: {str(e)}"
+            Logger.log(False, error_msg, "error")
+            return {"success": False, "error": error_msg}
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Download YouTube videos")
+    parser = argparse.ArgumentParser(description="YouTube Downloader Tool")
     parser.add_argument("url", help="YouTube video URL")
     parser.add_argument(
-        "-r",
-        "--resolution",
-        default="highest",
-        help="Video resolution (e.g., 720p, 1080p) or 'highest'",
-    )
-    parser.add_argument(
-        "-a", "--audio-only", action="store_true", help="Download audio only"
-    )
-    parser.add_argument(
-        "-i",
         "--info",
         action="store_true",
         help="Only show video information without downloading",
     )
     parser.add_argument(
-        "-o",
         "--output-path",
         default="downloads",
-        help="Directory to save the downloaded file",
+        help="Output directory for downloaded files",
     )
-
+    parser.add_argument(
+        "--resolution",
+        default="highest",
+        help="Video resolution (e.g., 720p, 1080p) - only for full video download",
+    )
+    parser.add_argument(
+        "--audio-only",
+        action="store_true",
+        help="Download audio only (optimized for transcription)",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose logging",
+    )
     args = parser.parse_args()
-    Logger.log(True, f"Getting information for: {args.url}")
 
-    downloader = YouTubeDownloader(output_path=args.output_path)
+    if args.verbose:
+        Logger.set_verbose(True)
+
+    downloader = YouTubeDownloader(args.output_path)
 
     if args.info:
-        Logger.log(True, f"Getting information for: {args.url}")
-        info = downloader.get_video_info(args.url)
-        if info["success"]:
-            Logger.log(True, "Video information retrieved")
-            Logger.log(True, f"Title: {info['title']}")
-            Logger.log(True, f"Author: {info['author']}")
-            Logger.log(True, f"Length: {info['length']} seconds")
-            Logger.log(True, f"Thumbnail: {info['thumbnail_url']}")
-            Logger.log(
-                True,
-                f"Available resolutions: {', '.join(info['available_resolutions'])}",
+        video_info = downloader.get_video_info(args.url)
+        if video_info["success"]:
+            print("\nVideo Information:")
+            print(f"Title: {video_info['title']}")
+            print(f"Author: {video_info['author']}")
+            print(f"Length: {video_info['length']} seconds")
+            print(f"Views: {video_info['views']}")
+            print(
+                f"Available Resolutions: {', '.join(video_info['available_resolutions'])}"
             )
-            Logger.log(True, f"Views: {info['views']}")
         else:
-            Logger.log(False, "Failed to get video information")
-            Logger.log(False, f"Error: {info['error']}")
+            print(f"\nError: {video_info['error']}")
     elif args.audio_only:
-        Logger.log(True, f"Downloading audio from: {args.url}")
         result = downloader.download_audio_only(args.url)
         if result["success"]:
-            Logger.log(True, f"Title: {result['title']}")
-            Logger.log(True, f"Saved to: {result['file_path']}")
+            print(f"\nAudio downloaded successfully to: {result['file_path']}")
         else:
-            pass
+            print(f"\nDownload failed: {result['error']}")
     else:
-        Logger.log(True, f"Downloading video from: {args.url}")
-        result = downloader.download_video(args.url, resolution=args.resolution)
+        result = downloader.download_video(args.url, args.resolution)
         if result["success"]:
-            Logger.log(True, f"Title: {result['title']}")
-            Logger.log(True, f"Saved to: {result['file_path']}")
+            print(f"\nVideo downloaded successfully to: {result['file_path']}")
         else:
-            pass
+            print(f"\nDownload failed: {result['error']}")

@@ -1,0 +1,29 @@
+Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown without any Markdown code block tags (```). Completely adapt the structure based on the specific content, following these general guidelines:
+
+1. Determine the most appropriate main title that captures the essence of the content.
+
+2. Structure the article with logical and fluid sections, creating relevant subtitles that organically reflect the main themes of the content. Do not use predefined structures, but completely adapt to the specific material.
+
+3. Begin with a contextual introduction that presents the general overview of the subject, establishing the tone and scope of the content.
+
+4. Develop the body of the article cohesively, grouping related information into natural thematic sections. Determine if the content benefits more from:
+- Narrative paragraphs for conceptual content
+- Bullet lists for discrete points
+- Numbered sequences for processes or steps
+- Comparisons for different perspectives or approaches
+
+5. When relevant, include a section highlighting practical applications, benefits, main results, or implications.
+
+6. Conclude with a synthesis that connects the main points and offers perspective on the overall value of the content.
+
+Use Markdown formatting to highlight important elements:
+- **Bold** for key concepts
+- Hierarchical subtitles (# ## ###) for visual organization
+- Lists and bullets when appropriate to facilitate reading
+- Direct quotations only when essential to preserve the exact meaning
+- Return the content in Brazilian Portuguese (Português Brasileiro)
+
+The final format should be clean, professional, and pleasant to read, similar to a well-structured article. Completely adapt the approach to the specific type of content, whether it is educational, tutorial, interview, debate, presentation, or any other format.
+
+Apply this structure to the following text:
+{input_text}
