@@ -181,8 +181,6 @@ def select_device(requested_device: str = None) -> str:
         device = "cpu"
     else:
         device = requested_device
-
-    Logger.log(True, f"Using device: {device.upper()}")
     return device
 
 
