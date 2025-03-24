@@ -1,10 +1,10 @@
 import os
+
 from pathlib import Path
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-# Load environment variables
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
@@ -25,7 +25,7 @@ def get_postgres_uri():
 
     if all([db_user, db_password, db_host, db_port, db_name]):
         uri = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        if os.environ.get("DB_SSL") == "true":
+        if os.getenv("DB_SSL").lower() in ("true", "1", "t"):
             uri += "?sslmode=require"
         return uri
     return None
