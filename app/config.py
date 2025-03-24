@@ -17,11 +17,11 @@ def create_sqlite_uri(database):
 
 def get_postgres_uri():
     """Build PostgreSQL connection URI from environment variables"""
-    db_user = os.environ.get("DB_USER")
-    db_password = os.environ.get("DB_PASSWORD")
-    db_host = os.environ.get("DB_HOST")
-    db_port = os.environ.get("DB_PORT")
-    db_name = os.environ.get("DB_NAME")
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+    db_name = os.getenv("DB_NAME")
 
     if all([db_user, db_password, db_host, db_port, db_name]):
         uri = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
@@ -66,10 +66,6 @@ class Settings(BaseSettings):
     )
 
     API_PORT: int = int(os.getenv("APP_PORT"))
-    API_HOST: str = os.getenv("API_HOST")
-
-    WEBSOCKET_PORT: int = int(os.getenv("WEBSOCKET_PORT"))
-    WEBSOCKET_HOST: str = os.getenv("WEBSOCKET_HOST")
 
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY")
