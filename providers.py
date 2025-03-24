@@ -2,7 +2,7 @@ import os
 import time
 
 from google import genai
-from logger import Logger
+from utils.logger import Logger
 from google.genai.types import GenerateContentConfig, SafetySetting, Content, Part
 from utils import load_config
 

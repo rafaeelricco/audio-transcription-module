@@ -37,7 +37,7 @@ import numpy as np
 import multiprocessing
 
 from pathlib import Path
-from logger import Logger
+from utils.logger import Logger
 from typing import Dict, Any, List
 from argparse import ArgumentParser
 from ai_transcript_processor import process_text

@@ -32,7 +32,7 @@ import subprocess
 import shutil
 import argparse
 
-from logger import Logger
+from utils.logger import Logger
 from typing import Dict, Any
 from utils import sanitize_filename, get_youtube_video_id, ensure_dir
 
