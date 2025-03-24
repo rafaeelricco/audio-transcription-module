@@ -286,7 +286,7 @@ def save_and_process_transcript(
         with open(raw_path, "w", encoding="utf-8") as f:
             f.write(transcript_text)
 
-        Logger.log(f"Raw transcription saved to: {raw_path}")
+        Logger.log(True, f"Raw transcription saved to: {raw_path}")
         Logger.log(True, "Processing transcript with AI")
         try:
             processed_text = process_text(transcript_text)
@@ -297,7 +297,7 @@ def save_and_process_transcript(
                 with open(organized_path, "w", encoding="utf-8") as f:
                     f.write(processed_text)
                 Logger.log(True, "Processing complete")
-                Logger.log(True, "Organized transcription saved to: {organized_path}")
+                Logger.log(True, f"Organized transcription saved to: {organized_path}")
                 return True
             else:
                 Logger.log(False, "AI processing failed", "error")
@@ -305,13 +305,13 @@ def save_and_process_transcript(
                     False, "Organized version not saved due to processing errors"
                 )
         except Exception as e:
-            Logger.log(False, "AI processing failed: {str(e)}", "error")
-            Logger.log(False, "AI processing error: {str(e)}")
+            Logger.log(False, f"AI processing failed: {str(e)}", "error")
+            Logger.log(False, f"AI processing error: {str(e)}")
 
         return True
     except Exception as e:
-        Logger.log(False, "Failed to save transcript: {str(e)}", "error")
-        Logger.log(False, "Error saving transcript: {str(e)}")
+        Logger.log(False, f"Failed to save transcript: {str(e)}", "error")
+        Logger.log(False, f"Error saving transcript: {str(e)}")
         return False
 
 
