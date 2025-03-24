@@ -24,9 +24,32 @@ debug_mode = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
 app = create_app(flask_env)
 
 
+# Disable Flask startup messages
+class FlaskFilter(logging.Filter):
+    def filter(self, record):
+        return False
+
+
+# Disable Flask's logging
+cli_logger = logging.getLogger("flask.cli")
+cli_logger.addFilter(FlaskFilter())
+
+
 def start_servers():
     """Start both the WebSocket server and Flask API"""
-    app.run(host="0.0.0.0", port=flask_port, debug=debug_mode, threaded=True)
+    # Disable initial message about using SQLite
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
+    # Run without log output
+    app.run(
+        host="0.0.0.0",
+        port=flask_port,
+        debug=debug_mode,
+        threaded=True,
+        use_reloader=False,
+    )
 
 
 if __name__ == "__main__":
