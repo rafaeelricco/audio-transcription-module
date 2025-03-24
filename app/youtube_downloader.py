@@ -1,40 +1,12 @@
-"""
-YouTube Downloader Module
-
-Key features:
-- Download audio from YouTube videos for transcription workflows
-- Automatic sanitization of URLs to extract video IDs
-- Support for both yt-dlp and wget download methods
-- Customizable output directory organization
-- Video information extraction (title, author, length, etc.)
-
-Basic usage:
-  # Download audio from a YouTube video (default to downloads/video_title.mp3)
-  python youtube_downloader.py https://www.youtube.com/watch?v=VIDEO_ID
-
-  # Show video information without downloading
-  python youtube_downloader.py https://www.youtube.com/watch?v=VIDEO_ID --info
-
-  # Specify custom output directory
-  python youtube_downloader.py https://www.youtube.com/watch?v=VIDEO_ID --output-path custom_folder
-
-  # Download full video with specific resolution (optional)
-  python youtube_downloader.py https://www.youtube.com/watch?v=VIDEO_ID --resolution 720p
-
-Requirements:
-  - yt-dlp (required): pip install yt-dlp
-  - wget (optional): brew install wget (macOS) or apt-get install wget (Linux)
-"""
-
 import os
 import json
 import subprocess
 import shutil
 import argparse
 
-from utils.logger import Logger
 from typing import Dict, Any
-from utils import sanitize_filename, get_youtube_video_id, ensure_dir
+from app.utils.logger import Logger
+from app.utils.functions import sanitize_filename, get_youtube_video_id, ensure_dir
 
 
 class YouTubeDownloader:
