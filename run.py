@@ -413,6 +413,7 @@ def main():
         help="Path to configuration file",
     )
     args = parser.parse_args()
+    device = select_device(args.device)
 
     if args.verbose:
         Logger.set_verbose(True)

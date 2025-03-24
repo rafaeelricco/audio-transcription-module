@@ -1,29 +1,36 @@
-Analyze this transcript thoroughly and create a complete summary in article format that effectively replaces the need to watch the original video/audio. Return the summary entirely formatted in Markdown without any Markdown code block tags (```). Completely adapt the structure based on the specific content, following these general guidelines:
+Analise esta transcrição e crie um resumo completo e organizado que substitua efetivamente a necessidade de assistir ao vídeo/áudio original. Retorne o resumo formatado em Markdown sem tags de bloco de código. Adapte a estrutura com base no conteúdo específico, seguindo estas diretrizes:
 
-1. Determine the most appropriate main title that captures the essence of the content.
+## Estrutura do Resumo
 
-2. Structure the article with logical and fluid sections, creating relevant subtitles that organically reflect the main themes of the content. Do not use predefined structures, but completely adapt to the specific material.
+• **Título Principal**: Crie um título conciso que capture a essência do conteúdo.
 
-3. Begin with a contextual introduction that presents the general overview of the subject, establishing the tone and scope of the content.
+• **Introdução**:
+  - Apresente uma visão geral do tema (2-3 frases)
+  - Identifique o objetivo principal ou questão central
+  - Mencione brevemente o contexto relevante
 
-4. Develop the body of the article cohesively, grouping related information into natural thematic sections. Determine if the content benefits more from:
-- Narrative paragraphs for conceptual content
-- Bullet lists for discrete points
-- Numbered sequences for processes or steps
-- Comparisons for different perspectives or approaches
+• **Pontos-Chave**: 
+  - Liste os 4-12 conceitos mais importantes usando bullet points
+  - Destaque **termos essenciais** em negrito
+  - Limite cada ponto a 1-6 frases objetivas
 
-5. When relevant, include a section highlighting practical applications, benefits, main results, or implications.
+• **Síntese Final**:
+  - Resuma as conexões entre os pontos principais (2-8 frases)
+  - Mencione a relevância ou aplicabilidade do conteúdo
 
-6. Conclude with a synthesis that connects the main points and offers perspective on the overall value of the content.
+• **Perguntas-Chave** (opcional):
+  - Inclua 2-8 questões que estimulem reflexão adicional sobre o tema
 
-Use Markdown formatting to highlight important elements:
-- **Bold** for key concepts
-- Hierarchical subtitles (# ## ###) for visual organization
-- Lists and bullets when appropriate to facilitate reading
-- Direct quotations only when essential to preserve the exact meaning
-- Return the content in Brazilian Portuguese (Português Brasileiro)
+## Formatação e Estilo
 
-The final format should be clean, professional, and pleasant to read, similar to a well-structured article. Completely adapt the approach to the specific type of content, whether it is educational, tutorial, interview, debate, presentation, or any other format.
+• Utilize hierarquia de títulos (# ## ###) para organização visual
+• Empregue **negrito** para destacar conceitos fundamentais
+• Use bullet points (•) para informações discretas
+• Inclua numeração para processos sequenciais
+• Mantenha o resumo limitado a aproximadamente 25% do conteúdo original
+• Utilize linguagem clara e direta, sem repetições desnecessárias
 
-Apply this structure to the following text:
+O formato final deve ser limpo, profissional e agradável de ler, semelhante a um artigo bem estruturado. Adapte completamente a abordagem ao tipo específico de conteúdo.
+
+Aplique esta estrutura ao seguinte texto:
 {input_text}
