@@ -8,7 +8,7 @@ from picows import (
     WSMsgType,
     WSUpgradeRequest,
 )
-from utils.logger import Logger
+from app.utils.logger import Logger
 
 
 class ServerClientListener(WSListener):
