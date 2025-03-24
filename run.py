@@ -93,7 +93,7 @@ class WhisperModel:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
 
             try:
-                Logger.log(True, f"Loading Whisper model: {model_name} on {device}")
+                Logger.log(True, f"Loading Whisper model: {model_name}")
                 self._model = whisper.load_model(
                     model_name, device=device, in_memory=True
                 )
@@ -142,11 +142,17 @@ def get_config() -> Dict[str, Any]:
     except FileNotFoundError:
         return {
             "transcription": {
-                "model_name": "turbo",
-                "temperature": 0.3,
-                "no_speech_threshold": 0.6,
-                "condition_on_previous_text": True,
-                "fp16": True,
+                "model_name": "whisper-large-v3-turbo",
+                "temperature": 0.0,
+                "no_speech_threshold": 0.4,
+                "beam_size": 5,
+                "best_of": 5,
+                "compression_ratio_threshold": 2.0,
+                "logprob_threshold": -0.5,
+                "word_timestamps": True,
+                "prepend_punctuations": "\"'",
+                "append_punctuations": '".,!?',
+                "initial_prompt": "Diálogo rápido, conversa dinâmica, falas curtas",
             }
         }
 
