@@ -1,3 +1,4 @@
+import os
 import asyncio
 from picows import (
     ws_create_server,
@@ -29,11 +30,25 @@ class ServerClientListener(WSListener):
 async def main():
     def listener_factory(r: WSUpgradeRequest):
         return ServerClientListener()
+    
+    # Get WebSocket port from environment variables or use default
+    websocket_port = int(os.environ.get('WEBSOCKET_PORT', 9090))
+    host = "127.0.0.1"
+    
+    try:
+        server = await ws_create_server(listener_factory, host, websocket_port)
+        for s in server.sockets:
+            Logger.log(True, f"Server started on ws://{host}:{websocket_port}")
+    except OSError as e:
+        Logger.log(True, f"Error starting WebSocket server: {e}")
+        # Try alternative port if specified one is in use
+        alternative_port = websocket_port + 1
+        Logger.log(True, f"Trying alternative port: {alternative_port}")
+        server = await ws_create_server(listener_factory, host, alternative_port)
+        for s in server.sockets:
+            Logger.log(True, f"Server started on ws://{host}:{alternative_port}")
 
-    server = await ws_create_server(listener_factory, "127.0.0.1", 9001)
-    for s in server.sockets:
-        Logger.log(True, f"Server started on ws://127.0.0.1:9001")
-
+    # Always serve forever once we have a server
     await server.serve_forever()
 
 

@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
@@ -30,14 +28,6 @@ login_manager.login_view = "auth.login"
 def create_app(config_name):
     app = Flask(__name__)
 
-    app.config["MAIL_SERVER"] = "smtp.mailtrap.io"
-    app.config["MAIL_PORT"] = 465
-    app.config["MAIL_USE_TLS"] = True
-    app.config["MAIL_USE_SSL"] = False
-    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
-    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
-    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_USERNAME")
-
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
@@ -48,10 +38,12 @@ def create_app(config_name):
     cors.init_app(app)
     mail.init_app(app)
 
-    from app.mail import mail as mail_blueprint
-    from app.auth import auth as auth_blueprint
+    # from app.mail import mail as mail_blueprint
+    # from app.auth import auth as auth_blueprint
+    from app.api import api as api_blueprint
 
-    app.register_blueprint(mail_blueprint)
-    app.register_blueprint(auth_blueprint, url_prefix="/auth")
+    # app.register_blueprint(mail_blueprint)
+    # app.register_blueprint(auth_blueprint, url_prefix="/auth")
+    app.register_blueprint(api_blueprint)
 
     return app
