@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import platform
 import datetime
 
-from app.main import get_db
+from app.database import get_db
 
 # Create API router
 router = APIRouter(tags=["api"])

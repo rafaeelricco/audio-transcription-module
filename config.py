@@ -58,9 +58,11 @@ class Settings(BaseSettings):
     # OpenAI settings (if used)
     OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "allow"
+    }
 
 
 # Create a settings instance

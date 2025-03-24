@@ -34,37 +34,45 @@ def get_postgres_uri():
 class Settings(BaseSettings):
     """Base settings for the application"""
 
-    # Application settings
     APP_NAME: str = "Audio-to-Text API"
     APP_VERSION: str = "1.0.0"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-key-please-change-in-production")
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
 
-    # Environment settings
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() in ("true", "1", "t")
+    ENVIRONMENT: str = os.getenv("FLASK_ENV")
+    DEBUG: bool = os.getenv("DEBUG").lower() in ("true", "1", "t")
 
-    # Database settings
-    SQLALCHEMY_DATABASE_URI: str = get_postgres_uri() or (
-        create_sqlite_uri("development.db")
-        if ENVIRONMENT == "development"
-        else (
-            create_sqlite_uri("testing.db")
-            if ENVIRONMENT == "testing"
-            else create_sqlite_uri("production.db")
+    DB_USER: str = os.getenv("DB_USER")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD")
+    DB_HOST: str = os.getenv("DB_HOST")
+    DB_PORT: str = os.getenv("DB_PORT")
+    DB_NAME: str = os.getenv("DB_NAME")
+    DB_SSL: bool = os.getenv("DB_SSL").lower() in ("true", "1", "t")
+
+    SQLALCHEMY_DATABASE_URI: str = (
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        if all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME])
+        else get_postgres_uri()
+        or (
+            create_sqlite_uri("development.db")
+            if ENVIRONMENT == "development"
+            else (
+                create_sqlite_uri("testing.db")
+                if ENVIRONMENT == "testing"
+                else create_sqlite_uri("production.db")
+            )
         )
     )
 
-    # API settings
-    API_PORT: int = int(os.getenv("API_PORT", 8000))
-    API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
+    API_PORT: int = int(os.getenv("FLASK_PORT"))
+    API_HOST: str = os.getenv("API_HOST")
 
-    # WebSocket settings
-    WEBSOCKET_PORT: int = int(os.getenv("WEBSOCKET_PORT", 9090))
-    WEBSOCKET_HOST: str = os.getenv("WEBSOCKET_HOST", "127.0.0.1")
+    WEBSOCKET_PORT: int = int(os.getenv("WEBSOCKET_PORT"))
+    WEBSOCKET_HOST: str = os.getenv("WEBSOCKET_HOST")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY")
+
+    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "allow"}
 
 
 @lru_cache()
