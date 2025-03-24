@@ -1,23 +1,8 @@
 import uuid
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from flask_login import UserMixin
 
 from app.factory import db
-
-
-class User(db.Model, UserMixin):
-    """User model representing a person who submits processing requests."""
-
-    __tablename__ = "users"
-
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), nullable=False, unique=True)
-
-    requests = db.relationship("ProcessingRequest", backref="user", lazy="dynamic")
-
-    def __repr__(self):
-        return f"<User {self.name} ({self.email})>"
+from app.model.user import User
 
 
 class ProcessingRequest(db.Model):
@@ -32,6 +17,11 @@ class ProcessingRequest(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
 
     def __repr__(self):
+        """
+        Return a string representation of the ProcessingRequest object.
+
+        Format: <ProcessingRequest <id> - <n> URLs>
+        """
         return f"<ProcessingRequest {self.id} - {len(self.urls)} URLs>"
 
     @property

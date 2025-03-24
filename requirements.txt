@@ -20,3 +20,6 @@ picows
 gunicorn
 SQLAlchemy
 sqlparse
+flask-script
+flask-migrate
+psycopg2-binary
