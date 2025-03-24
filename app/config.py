@@ -36,9 +36,11 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "Audio-to-Text API"
     APP_VERSION: str = "1.0.0"
-    SECRET_KEY: str = os.getenv("SECRET_KEY")
 
-    ENVIRONMENT: str = os.getenv("FLASK_ENV")
+    API_HOST: str = os.getenv("API_HOST")
+    WEBSOCKET_HOST: str = os.getenv("WEBSOCKET_HOST")
+
+    ENVIRONMENT: str = os.getenv("ENV")
     DEBUG: bool = os.getenv("DEBUG").lower() in ("true", "1", "t")
 
     DB_USER: str = os.getenv("DB_USER")
@@ -63,7 +65,7 @@ class Settings(BaseSettings):
         )
     )
 
-    API_PORT: int = int(os.getenv("FLASK_PORT"))
+    API_PORT: int = int(os.getenv("APP_PORT"))
     API_HOST: str = os.getenv("API_HOST")
 
     WEBSOCKET_PORT: int = int(os.getenv("WEBSOCKET_PORT"))
