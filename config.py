@@ -1,86 +1,67 @@
 import os
+from pathlib import Path
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Load environment variables
+env_path = Path(".") / ".env"
+load_dotenv(dotenv_path=env_path)
 
 
-class Config:
-    """Base configuration."""
-
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-key-please-change-in-production")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    @staticmethod
-    def init_app(app):
-        pass
-
-
-class DevelopmentConfig(Config):
-    """Development configuration."""
-
-    DEBUG = True
-
-    # Check if we have all required database parameters
-    if all(
-        [
-            os.environ.get("DB_USER"),
-            os.environ.get("DB_PASSWORD"),
-            os.environ.get("DB_HOST"),
-            os.environ.get("DB_PORT"),
-            os.environ.get("DB_NAME"),
-        ]
-    ):
-        # Database configuration using PostgreSQL
-        SQLALCHEMY_DATABASE_URI = (
-            f"postgresql://{os.environ.get('DB_USER')}:"
-            f"{os.environ.get('DB_PASSWORD')}@"
-            f"{os.environ.get('DB_HOST')}:"
-            f"{os.environ.get('DB_PORT')}/"
-            f"{os.environ.get('DB_NAME')}"
-        )
-
-        if os.environ.get("DB_SSL") == "true":
-            SQLALCHEMY_DATABASE_URI += "?sslmode=require"
-    else:
-        # Use SQLite for development if PostgreSQL params are missing
-        SQLALCHEMY_DATABASE_URI = "sqlite:///dev.db"
-
-
-class TestingConfig(Config):
-    """Testing configuration."""
-
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-
-
-class ProductionConfig(Config):
-    """Production configuration."""
-
-    # Check if we have all required database parameters
-    db_user = os.environ.get("DB_USER")
-    db_password = os.environ.get("DB_PASSWORD")
-    db_host = os.environ.get("DB_HOST")
-    db_port = os.environ.get("DB_PORT")
-    db_name = os.environ.get("DB_NAME")
-
-    if all([db_user, db_password, db_host, db_port, db_name]):
-        # Database configuration using PostgreSQL
-        SQLALCHEMY_DATABASE_URI = (
-            f"postgresql://{db_user}:"
-            f"{db_password}@"
-            f"{db_host}:"
-            f"{db_port}/"
-            f"{db_name}"
-        )
-
-        if os.environ.get("DB_SSL") == "true":
-            SQLALCHEMY_DATABASE_URI += "?sslmode=require"
-    else:
-        # Fail safe for production if db params are missing
-        SQLALCHEMY_DATABASE_URI = "sqlite:///production.db"
-        print("WARNING: Using SQLite in production due to missing database parameters!")
+class Settings(BaseSettings):
+    """Application settings."""
+    
+    # Core settings
+    APP_NAME: str = "Audio-to-Text API"
+    APP_VERSION: str = "1.0.0"
+    APP_DESCRIPTION: str = "An API for processing YouTube videos and converting audio to text"
+    SECRET_KEY: str = os.environ.get("SECRET_KEY", "dev-key-please-change-in-production")
+    ENVIRONMENT: str = os.environ.get("ENVIRONMENT", "development")
+    DEBUG: bool = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
+    
+    # API settings
+    API_PORT: int = int(os.environ.get("API_PORT", 8000))
+    API_HOST: str = os.environ.get("API_HOST", "0.0.0.0")
+    
+    # WebSocket settings
+    WEBSOCKET_PORT: int = int(os.environ.get("WEBSOCKET_PORT", 9090))
+    WEBSOCKET_HOST: str = os.environ.get("WEBSOCKET_HOST", "127.0.0.1")
+    
+    # Database settings - check if we have all required database parameters
+    DB_USER: str = os.environ.get("DB_USER", "")
+    DB_PASSWORD: str = os.environ.get("DB_PASSWORD", "")
+    DB_HOST: str = os.environ.get("DB_HOST", "")
+    DB_PORT: str = os.environ.get("DB_PORT", "")
+    DB_NAME: str = os.environ.get("DB_NAME", "")
+    DB_SSL: bool = os.environ.get("DB_SSL", "false").lower() in ("true", "1", "t")
+    
+    # Compute database URI based on environment and available parameters
+    @property
+    def DATABASE_URL(self) -> str:
+        """Generate database connection URL"""
+        # If all PostgreSQL parameters are available
+        if all([self.DB_USER, self.DB_PASSWORD, self.DB_HOST, self.DB_PORT, self.DB_NAME]):
+            uri = f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            if self.DB_SSL:
+                uri += "?sslmode=require"
+            return uri
+        
+        # Otherwise use SQLite based on environment
+        if self.ENVIRONMENT == "testing":
+            return "sqlite:///:memory:"
+        elif self.ENVIRONMENT == "production":
+            print("WARNING: Using SQLite in production due to missing database parameters!")
+            return "sqlite:///production.db"
+        else:  # development
+            return "sqlite:///dev.db"
+    
+    # OpenAI settings (if used)
+    OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
 
 
-config = {
-    "development": DevelopmentConfig,
-    "testing": TestingConfig,
-    "production": ProductionConfig,
-    "default": DevelopmentConfig,
-}
+# Create a settings instance
+settings = Settings()

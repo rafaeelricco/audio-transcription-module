@@ -1,11 +1,11 @@
 import os
-import threading
-import time
 import sys
 import logging
+import uvicorn
 from dotenv import load_dotenv
 from pathlib import Path
-from app.factory import create_app
+from app.server import start_ws_server_thread
+from config import settings
 
 # Configure logging
 logging.basicConfig(
@@ -14,41 +14,20 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
+# Load environment variables
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
-flask_env = os.environ.get("FLASK_ENV", "development")
-flask_port = int(os.environ.get("FLASK_PORT", 8080))
-debug_mode = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
-
-app = create_app(flask_env)
-
-
-# Disable Flask startup messages
-class FlaskFilter(logging.Filter):
-    def filter(self, record):
-        return False
-
-
-# Disable Flask's logging
-cli_logger = logging.getLogger("flask.cli")
-cli_logger.addFilter(FlaskFilter())
-
 
 def start_servers():
-    """Start both the WebSocket server and Flask API"""
-    # Disable initial message about using SQLite
-    import warnings
-
-    warnings.filterwarnings("ignore")
-
-    # Run without log output
-    app.run(
-        host="0.0.0.0",
-        port=flask_port,
-        debug=debug_mode,
-        threaded=True,
-        use_reloader=False,
+    """Start both the WebSocket server and FastAPI application"""
+    # Start the FastAPI application using Uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=settings.DEBUG,
+        log_level="info" if settings.DEBUG else "error",
     )
 
 

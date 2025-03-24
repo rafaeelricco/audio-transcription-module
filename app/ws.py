@@ -1,49 +1,71 @@
 import os
 import asyncio
 import logging
-from picows import (
-    ws_create_server,
-    WSFrame,
-    WSTransport,
-    WSListener,
-    WSCloseCode,
-    WSMsgType,
-    WSUpgradeRequest,
-)
-from app.utils.logger import Logger
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 
-# Disable logging for this module
-logging.getLogger(__name__).setLevel(logging.CRITICAL)
+# Configure logging for this module
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-class ServerClientListener(WSListener):
-    def on_ws_connected(self, transport: WSTransport):
-        transport.send(WSMsgType.TEXT, b"Connection established. Listen for messages.")
+class ConnectionManager:
+    """WebSocket connection manager"""
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
 
-    def on_ws_frame(self, transport: WSTransport, frame: WSFrame):
-        transport.send(frame.msg_type, frame.get_payload_as_bytes())
+    async def connect(self, websocket: WebSocket):
+        """Accept and store a new WebSocket connection"""
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        await websocket.send_text("Connection established. Listen for messages.")
 
-    def on_ws_closed(
-        self, transport: WSTransport, close_code: WSCloseCode, close_reason: str
-    ):
-        transport.close()
+    def disconnect(self, websocket: WebSocket):
+        """Remove a WebSocket connection"""
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        """Send a message to a specific client"""
+        if websocket.client_state != WebSocketState.DISCONNECTED:
+            await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        """Broadcast a message to all connected clients"""
+        for connection in self.active_connections:
+            if connection.client_state != WebSocketState.DISCONNECTED:
+                await connection.send_text(message)
 
 
-async def main():
-    def listener_factory(r: WSUpgradeRequest):
-        return ServerClientListener()
+# Create a connection manager instance
+manager = ConnectionManager()
 
-    websocket_port = int(os.environ.get("WEBSOCKET_PORT", 9090))
-    host = "127.0.0.1"
 
+# This will be used by the main FastAPI app
+router = FastAPI()
+
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint to handle client connections"""
+    await manager.connect(websocket)
     try:
-        server = await ws_create_server(listener_factory, host, websocket_port)
-    except OSError as e:
-        alternative_port = websocket_port + 1
-        server = await ws_create_server(listener_factory, host, alternative_port)
-
-    await server.serve_forever()
+        while True:
+            # Receive and echo back the message
+            message = await websocket.receive_text()
+            await manager.send_personal_message(message, websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # For testing the WebSocket server independently
+    import uvicorn
+    
+    websocket_port = int(os.environ.get("WEBSOCKET_PORT", 9090))
+    host = os.environ.get("WEBSOCKET_HOST", "127.0.0.1")
+    
+    uvicorn.run(router, host=host, port=websocket_port)

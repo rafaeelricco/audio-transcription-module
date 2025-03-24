@@ -1,19 +1,23 @@
 """API routes for the audio-to-text application."""
 
-from flask import Blueprint, jsonify
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 import platform
 import datetime
 
-api = Blueprint("api", __name__)
+from app.main import get_db
+
+# Create API router
+router = APIRouter(tags=["api"])
 
 
-@api.route("/", methods=["GET"])
+@router.get("/")
 def index():
     """
     Root endpoint that returns information about the API.
 
     Returns:
-        JSON response with API information and status
+        Dictionary with API information and status
     """
     api_info = {
         "name": "Audio-to-Text API",
@@ -32,4 +36,4 @@ def index():
         },
     }
 
-    return jsonify(api_info)
+    return api_info
