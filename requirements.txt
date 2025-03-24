@@ -1,3 +1,11 @@
+Flask
+Flask-Bcrypt
+Flask-Cors
+Flask-Login
+Flask-Mail
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-WTF
 openai==1.61.0
 python-dotenv==1.0.1
 transformers==4.48.2
@@ -8,3 +16,7 @@ urllib3==1.26.16
 yt-dlp
 openai-whisper
 google-genai
+picows
+gunicorn
+SQLAlchemy
+sqlparse

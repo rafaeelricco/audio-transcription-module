@@ -1,0 +1,18 @@
+version: "4"
+
+services:
+  app:
+    build: .
+    container_name: audiolens-api
+    command: sh -c "gunicorn -w 4 -b 0.0.0.0:3333 wsgi:app"
+    restart: always
+    volumes:
+      - .:/app
+    expose:
+      - "3333"
+    ports:
+      - "3333:3333"
+    environment:
+      - DEBUG=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1

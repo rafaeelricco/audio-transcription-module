@@ -1,0 +1,2 @@
+# removel all *.pyc files and *.pyo files
+find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf

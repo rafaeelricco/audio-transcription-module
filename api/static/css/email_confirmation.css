@@ -1,0 +1,32 @@
+.confirm__title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 -0.618rem 0;
+}
+
+.confirm__pargh {
+  color: #808289;
+}
+
+.confirm__button {
+  background: #007aff;
+  padding-left: 1.618rem;
+  padding-right: 1.618rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  height: 1.875rem;
+  width: 10rem;
+  border-style: none;
+  border-radius: 0.518rem;
+  transition: all 0.2s ease-out;
+}
+
+.confirm__button:hover {
+  border: 1px solid #0095ff;
+  cursor: pointer;
+}
+
+.confirm__link {
+  color: #fff;
+  text-decoration: none;
+}
