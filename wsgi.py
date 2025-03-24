@@ -1,33 +1,46 @@
 import os
 import threading
-import asyncio
+import time
+import sys
+import logging
 from dotenv import load_dotenv
+from pathlib import Path
 from app.factory import create_app
-from app.server import main as websocket_server
+from app.server import start_ws_server_thread
 
-# Load environment variables
-env = os.path.join(os.path.dirname(__file__), ".env")
-if os.path.exists(env):
-    load_dotenv(env)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
-# Get environment configuration
-FLASK_ENV = os.getenv('FLASK_ENV', 'production')
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
-FLASK_PORT = int(os.getenv('FLASK_PORT', 8080))
+env_path = Path(".") / ".env"
+load_dotenv(dotenv_path=env_path)
 
-# Create Flask app with the appropriate environment
-app = create_app(FLASK_ENV)
+flask_env = os.environ.get("FLASK_ENV", "development")
+flask_port = int(os.environ.get("FLASK_PORT", 8080))
+debug_mode = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
 
-# Function to run the websocket server
-def run_websocket_server():
-    asyncio.run(websocket_server())
+app = create_app(flask_env)
+
+
+def start_servers():
+    """Start both the WebSocket server and Flask API"""
+    # Start WebSocket server in a background thread
+    print("Starting WebSocket server in background thread")
+    ws_thread = start_ws_server_thread()
+    print(f"WebSocket server thread started with ID: {ws_thread.ident}")
+    
+    # Give the WebSocket server a moment to initialize
+    time.sleep(1)
+    
+    # Start Flask app in the main thread
+    print(f"Starting Flask server on port {flask_port}")
+    app.run(host="0.0.0.0", port=flask_port, debug=debug_mode, threaded=True)
+
 
 if __name__ == "__main__":
-    # Start websocket server in a separate thread
-    websocket_thread = threading.Thread(target=run_websocket_server, daemon=True)
-    websocket_thread.start()
-    print("WebSocket server started in background thread")
-    
-    # Start Flask app with debug mode and port from environment variables
-    # Avoid using port 5000 (AirPlay Receiver on macOS) 
-    app.run(debug=DEBUG, host='0.0.0.0', port=FLASK_PORT)
+    start_servers()

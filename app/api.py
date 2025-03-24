@@ -1,16 +1,17 @@
 """API routes for the audio-to-text application."""
+
 from flask import Blueprint, jsonify
 import platform
 import datetime
 
-api = Blueprint('api', __name__)
+api = Blueprint("api", __name__)
 
 
-@api.route('/', methods=['GET'])
+@api.route("/", methods=["GET"])
 def index():
     """
     Root endpoint that returns information about the API.
-    
+
     Returns:
         JSON response with API information and status
     """
@@ -27,8 +28,8 @@ def index():
         "environment": {
             "python": platform.python_version(),
             "system": platform.system(),
-            "node": platform.node()
-        }
+            "node": platform.node(),
+        },
     }
-    
+
     return jsonify(api_info)

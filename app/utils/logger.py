@@ -35,11 +35,8 @@ class Logger:
             with cls._lock:
                 if cls._logger is None:
                     cls._logger = logging.getLogger("audio-to-text")
-                    handler = logging.StreamHandler()
-                    formatter = logging.Formatter("%(message)s")
-                    handler.setFormatter(formatter)
-                    cls._logger.addHandler(handler)
-                    cls._logger.setLevel(logging.INFO)
+                    # Set to ERROR level to suppress most logs
+                    cls._logger.setLevel(logging.ERROR)
         return cls._logger
 
     @classmethod
@@ -74,33 +71,14 @@ class Logger:
             level (str): Log level - one of: 'info', 'debug', 'warning', 'error'.
                         Debug messages are only shown when verbose mode is enabled.
         """
-
-        if level == "debug" and not cls.VERBOSE:
-            return
-
-        prefix = "✓" if success else "✗"
-
-        level_prefixes = {
-            "debug": "[DEBUG]",
-            "warning": "[WARNING]",
-            "error": "[ERROR]",
-            "info": "",
-        }
-
-        level_prefix = level_prefixes.get(level, "")
-        formatted_message = f"{prefix} {level_prefix} {message}"
-
-        logger = cls._get_logger()
-
-        with cls._lock:
-            if level == "error":
+        # Suppress all logs to avoid console clutter
+        # Only log critical errors
+        if level == "error" and "fatal" in message.lower():
+            prefix = "✗"
+            formatted_message = f"{prefix} [ERROR] {message}"
+            logger = cls._get_logger()
+            with cls._lock:
                 logger.error(formatted_message)
-            elif level == "warning":
-                logger.warning(formatted_message)
-            elif level == "debug":
-                logger.debug(formatted_message)
-            else:
-                logger.info(formatted_message)
 
     @classmethod
     def setup_file_logging(
