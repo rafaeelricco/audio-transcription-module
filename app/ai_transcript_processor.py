@@ -39,31 +39,46 @@ def get_provider(provider_name: str):
     return providers[provider_name]()
 
 
-def load_prompt_template(template_name: str = "transcript_prompt.txt") -> str:
+def load_prompt_template() -> str:
+    prompt = f"""
+    Analise esta transcrição e crie um resumo completo e organizado que substitua efetivamente a necessidade de assistir ao vídeo/áudio original. Retorne o resumo formatado em Markdown sem tags de bloco de código. Adapte a estrutura com base no conteúdo específico, seguindo estas diretrizes:
+
+    ## Estrutura do Resumo
+
+    • **Título Principal**: Crie um título conciso que capture a essência do conteúdo.
+
+    • **Introdução**:
+    - Apresente uma visão geral do tema (2-3 frases)
+    - Identifique o objetivo principal ou questão central
+    - Mencione brevemente o contexto relevante
+
+    • **Pontos-Chave**: 
+    - Liste os 4-12 conceitos mais importantes usando bullet points
+    - Destaque **termos essenciais** em negrito
+    - Limite cada ponto a 1-6 frases objetivas
+
+    • **Síntese Final**:
+    - Resuma as conexões entre os pontos principais (2-8 frases)
+    - Mencione a relevância ou aplicabilidade do conteúdo
+
+    • **Perguntas-Chave** (opcional):
+    - Inclua 2-8 questões que estimulem reflexão adicional sobre o tema
+
+    ## Formatação e Estilo
+
+    • Utilize hierarquia de títulos (# ## ###) para organização visual
+    • Empregue **negrito** para destacar conceitos fundamentais
+    • Use bullet points (•) para informações discretas
+    • Inclua numeração para processos sequenciais
+    • Mantenha o resumo limitado a aproximadamente 25% do conteúdo original
+    • Utilize linguagem clara e direta, sem repetições desnecessárias
+
+    O formato final deve ser limpo, profissional e agradável de ler, semelhante a um artigo bem estruturado. Adapte completamente a abordagem ao tipo específico de conteúdo.
+
+    Aplique esta estrutura ao seguinte texto:
+    {input_text}
     """
-    Load a prompt template from the templates directory.
-
-    Retrieves the content of a specific template file that will be used
-    to format prompts sent to AI providers.
-
-    Args:
-        template_name (str, optional): Name of the template file to load.
-                                      Defaults to "transcript_prompt.txt".
-
-    Returns:
-        str: Template content as a string
-
-    Raises:
-        FileNotFoundError: If the specified template file doesn't exist in the templates directory
-    """
-    template_path = os.path.join("templates", template_name)
-
-    try:
-        with open(template_path, "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        Logger.log(False, f"Template file not found: {template_path}", "error")
-        raise FileNotFoundError(f"Template file not found: {template_path}")
+    return prompt
 
 
 def process_text(input_text: str) -> str:
