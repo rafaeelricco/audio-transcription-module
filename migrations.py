@@ -4,6 +4,7 @@ import os
 import sys
 import click
 import alembic.config
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from config import settings
@@ -16,10 +17,7 @@ Base = declarative_base()
 def run_alembic_command(args):
     """Run an Alembic command programmatically."""
     # Create the Alembic config
-    alembic_args = [
-        '--raiseerr',
-        *args
-    ]
+    alembic_args = ["--raiseerr", *args]
     alembic.config.main(argv=alembic_args)
 
 
@@ -32,7 +30,7 @@ def cli():
 @cli.command("init")
 def init_alembic():
     """Initialize Alembic migrations."""
-    run_alembic_command(['init', 'alembic'])
+    run_alembic_command(["init", "alembic"])
     click.echo("Alembic migrations directory has been created.")
 
 
@@ -41,9 +39,9 @@ def init_alembic():
 def create_migration(message):
     """Create a new migration."""
     if message:
-        run_alembic_command(['revision', '--autogenerate', '-m', message])
+        run_alembic_command(["revision", "--autogenerate", "-m", message])
     else:
-        run_alembic_command(['revision', '--autogenerate', '-m', 'auto-generated'])
+        run_alembic_command(["revision", "--autogenerate", "-m", "auto-generated"])
     click.echo("New migration created.")
 
 
@@ -51,7 +49,7 @@ def create_migration(message):
 @click.option("--revision", "-r", default="head", help="Revision to upgrade to")
 def upgrade_db(revision):
     """Upgrade database to a specific revision."""
-    run_alembic_command(['upgrade', revision])
+    run_alembic_command(["upgrade", revision])
     click.echo(f"Database upgraded to {revision}.")
 
 
@@ -59,7 +57,7 @@ def upgrade_db(revision):
 @click.option("--revision", "-r", default="-1", help="Revision to downgrade to")
 def downgrade_db(revision):
     """Downgrade database to a specific revision."""
-    run_alembic_command(['downgrade', revision])
+    run_alembic_command(["downgrade", revision])
     click.echo(f"Database downgraded to {revision}.")
 
 
@@ -67,6 +65,7 @@ def downgrade_db(revision):
 def init_db():
     """Initialize the database and create all tables directly (without migrations)."""
     from app.main import Base, engine
+
     Base.metadata.create_all(bind=engine)
     click.echo("Database tables created successfully.")
 
@@ -75,6 +74,7 @@ def init_db():
 def reset_db():
     """Reset the database (drop all tables and recreate)."""
     from app.main import Base, engine
+
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     click.echo("Database has been reset successfully.")

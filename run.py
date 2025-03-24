@@ -1,34 +1,3 @@
-"""
- r1cco.com
-
-Audio Transcription Module
-
-A Python module for high-quality audio-to-text transcription using OpenAI's Whisper models.
-
-Key features:
-- Audio-to-text transcription using Whisper large-v3-turbo
-- Automatic output organization in 'dist' directory
-- GPU acceleration support
-- Batch processing capabilities
-
-Basic usage:
-  # Default output to dist/example.txt
-  python run.py --audio example.flac
-
-  # Specify processing device
-  python run.py --audio example.flac --device cpu
-  python run.py --audio example.flac --device gpu
-
-  # Custom output path
-  python run.py --audio assets/interview.mp3 --output transcripts/interview.txt
-
-  # Batch processing
-  python run.py --audio assets/lectures/*.mp3 --output university/lectures/
-
-  # Process with AI organization
-  python run.py --audio example.flac --process-ai
-"""
-
 import os
 import torch
 import glob

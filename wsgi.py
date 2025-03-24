@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import uvicorn
+
 from dotenv import load_dotenv
 from pathlib import Path
 from app.server import start_ws_server_thread
