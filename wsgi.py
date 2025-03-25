@@ -25,7 +25,7 @@ def start_servers():
     # Start the FastAPI application using Uvicorn
     uvicorn.run(
         "app.main:app",
-        host=settings.API_HOST,
+        host=settings.APP_HOST,
         port=settings.API_PORT,
         reload=settings.DEBUG,
         log_level="info" if settings.DEBUG else "error",

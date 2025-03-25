@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # API settings
     API_PORT: int = int(os.environ.get("API_PORT", 8000))
-    API_HOST: str = os.environ.get("API_HOST", "0.0.0.0")
+    APP_HOST: str = os.environ.get("APP_HOST", "0.0.0.0")
 
     # WebSocket settings
     WS_PORT: int = int(os.environ.get("WS_PORT", 9090))

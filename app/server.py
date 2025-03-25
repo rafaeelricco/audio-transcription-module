@@ -88,7 +88,7 @@ def start_api_server():
     try:
         uvicorn.run(
             app,
-            host=settings.API_HOST if hasattr(settings, "API_HOST") else "0.0.0.0",
+            host=settings.APP_HOST if hasattr(settings, "APP_HOST") else "0.0.0.0",
             port=settings.API_PORT if hasattr(settings, "API_PORT") else 8000,
             log_level="info",
         )

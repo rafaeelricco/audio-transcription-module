@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Audio-to-Text API"
     APP_VERSION: str = "1.0.0"
 
-    API_HOST: str = os.getenv("API_HOST")
+    APP_HOST: str = os.getenv("APP_HOST")
     WS_HOST: str = os.getenv("WS_HOST")
     WS_PORT: int = int(os.getenv("WS_PORT"))
 
