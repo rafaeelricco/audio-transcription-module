@@ -8,7 +8,7 @@ import multiprocessing
 from typing import Dict, Any, List
 from argparse import ArgumentParser
 from app.utils.logger import Logger
-from app.ai_transcript_processor import process_text
+from app.ai.transcription import process_text
 from app.utils.functions import load_config, ensure_dir, sanitize_filename
 
 
