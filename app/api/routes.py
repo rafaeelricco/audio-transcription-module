@@ -24,19 +24,36 @@ class ProcessRequest(BaseModel):
     urls: List[str] = Field(..., description="List of YouTube URLs to process")
 
 
-@router.post("/process", tags=["api"])
+@router.post("/api/process", tags=["api"])
 async def process_video(
-    request: ProcessRequest,
+    url: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    print(request.urls)
-    pass
+    request_id = str(uuid.uuid4())
+    db_request = ProcessingRequest(
+        id=request_id, url=url, user_id=user.id, status="pending"
+    )
+    db.add(db_request)
+    db.commit()
+
+    # Start background processing
+    from run import process_url
+
+    asyncio.create_task(process_url(url, request_id))
+
+    return {"request_id": request_id}
 
 
 @router.get("/api/status/{request_id}", tags=["api"])
-async def get_status(request_id: str):
-    pass
+async def get_status(request_id: str, db: Session = Depends(get_db)):
+    request = (
+        db.query(ProcessingRequest).filter(ProcessingRequest.id == request_id).first()
+    )
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    return {"status": request.status, "result": request.result, "url": request.url}
 
 
 # Test Endpoints

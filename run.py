@@ -4,6 +4,7 @@ import glob
 import whisper
 import numpy as np
 import multiprocessing
+import asyncio
 
 from typing import Dict, Any, List
 from argparse import ArgumentParser
@@ -152,7 +153,7 @@ def select_device(requested_device: str = None) -> str:
     return device
 
 
-def transcribe_audio(
+async def transcribe_audio(
     input_path: Dict[str, str], output_path: str = None, device: str = None
 ) -> Dict[str, Any]:
     """
@@ -219,6 +220,38 @@ def transcribe_audio(
     except Exception as e:
         Logger.log(False, f"Unexpected error during transcription: {str(e)}", "error")
         raise ValueError(str(e))
+
+
+async def process_url(url: str, request_id: str):
+    from app.model.request import ProcessingRequest
+    from app.db.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        # Update status to processing
+        db.query(ProcessingRequest)\
+           .filter(ProcessingRequest.id == request_id)\
+           .update({"status": "processing"})
+        db.commit()
+        
+        # Existing processing logic here
+        result = await transcribe_audio({"file_path": url})  # Modify your existing function
+        
+        # Update final status
+        db.query(ProcessingRequest)\
+           .filter(ProcessingRequest.id == request_id)\
+           .update({
+               "status": "completed",
+               "result": result
+           })
+        db.commit()
+    except Exception as e:
+        db.query(ProcessingRequest)\
+           .filter(ProcessingRequest.id == request_id)\
+           .update({"status": "failed"})
+        db.commit()
+    finally:
+        db.close()
 
 
 def save_and_process_transcript(
@@ -321,7 +354,7 @@ def process_batch(
                 output_path = None
 
             audio_info = {"file_path": file_path, "title": os.path.basename(file_path)}
-            result = transcribe_audio(audio_info, output_path, device)
+            result = asyncio.run(transcribe_audio(audio_info, output_path, device))
 
             if result:
                 save_and_process_transcript(
@@ -403,7 +436,7 @@ def main():
                 return False
 
             Logger.log(True, "Preparing for transcription")
-            transcript_result = transcribe_audio(audio_path, None)
+            transcript_result = asyncio.run(transcribe_audio(audio_path, None))
 
             if transcript_result:
                 file_name = audio_path.get("title", "youtube_transcript")
@@ -476,7 +509,7 @@ def main():
                         "title": os.path.basename(file_path),
                     }
                     try:
-                        result = transcribe_audio(audio_info, output_path, device)
+                        result = asyncio.run(transcribe_audio(audio_info, output_path, device))
                         if result:
                             save_and_process_transcript(
                                 result["text"], output_path, os.path.basename(file_path)
@@ -522,7 +555,7 @@ def main():
                 "file_path": audio_path,
                 "title": os.path.basename(audio_path),
             }
-            result = transcribe_audio(audio_info, output_path, device)
+            result = asyncio.run(transcribe_audio(audio_info, output_path, device))
 
             if result:
                 save_and_process_transcript(
