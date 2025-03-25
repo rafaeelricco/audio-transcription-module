@@ -18,9 +18,7 @@ class Settings(BaseSettings):
     APP_DESCRIPTION: str = (
         "An API for processing YouTube videos and converting audio to text"
     )
-    SECRET_KEY: str = os.environ.get(
-        "SECRET_KEY", "dev-key-please-change-in-production"
-    )
+    SECRET_KEY: str = os.environ.get("SECRET_KEY")
     ENVIRONMENT: str = os.environ.get("ENVIRONMENT", "development")
     DEBUG: bool = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
 

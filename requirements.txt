@@ -26,3 +26,9 @@ typing_extensions==4.12.2
 uvicorn==0.34.0
 websockets==15.0.1
 yt-dlp==2025.2.19
+h11
+click
+certifi
+psycopg2
+"pydantic[email]"
+itsdangerous

@@ -1,20 +1,21 @@
 import uuid
-from flask_login import UserMixin
+from sqlalchemy import Column, String
+from sqlalchemy.orm import relationship
 
-from app.factory import db
+from app.database import Base
 
 
-class User(db.Model, UserMixin):
+class User(Base):
     """User model representing a person who submits processing requests."""
 
     __tablename__ = "users"
 
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), nullable=False, unique=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(120), nullable=False)
+    email = Column(String(120), nullable=False, unique=True)
 
     # Relationship to processing requests
-    requests = db.relationship("ProcessingRequest", backref="user", lazy="dynamic")
+    requests = relationship("ProcessingRequest", back_populates="user")
 
     def __repr__(self):
         return f"<User {self.name} ({self.email})>"

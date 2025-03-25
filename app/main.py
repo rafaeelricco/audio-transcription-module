@@ -4,6 +4,7 @@ FastAPI application entry point for the audio-to-text service.
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from pathlib import Path
 from dotenv import load_dotenv
 from app.config import get_settings
@@ -23,6 +24,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Add Session middleware (required for OAuth)
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -37,8 +41,10 @@ app.add_middleware(
 async def startup_event():
     init_db()
 
-# Import API router after app creation to avoid circular imports
+# Import routers after app creation to avoid circular imports
 from app.api import router as api_router
+from app.auth.router import router as auth_router
 
-# Include API router
+# Include routers
 app.include_router(api_router)
+app.include_router(auth_router)

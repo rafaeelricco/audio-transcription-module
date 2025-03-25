@@ -1,20 +1,21 @@
 import uuid
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy import Column, String, Text, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 
-from app.factory import db
-from app.model.user import User
+from app.database import Base
 
 
-class ProcessingRequest(db.Model):
+class ProcessingRequest(Base):
     """Model for audio processing requests with YouTube URLs."""
 
     __tablename__ = "processing_requests"
 
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    urls = db.Column(db.JSON, nullable=False)
-    result = db.Column(db.Text, nullable=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    urls = Column(JSON, nullable=False)
+    result = Column(Text, nullable=True)
 
-    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    user = relationship("User", back_populates="requests")
 
     def __repr__(self):
         """
