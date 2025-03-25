@@ -27,7 +27,6 @@ def get_db():
         db.close()
 
 
-# Initialize database tables
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=engine)

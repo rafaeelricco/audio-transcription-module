@@ -35,7 +35,6 @@ class Logger:
             with cls._lock:
                 if cls._logger is None:
                     cls._logger = logging.getLogger("audio-to-text")
-                    # Set to ERROR level to suppress most logs
                     cls._logger.setLevel(logging.ERROR)
         return cls._logger
 
@@ -71,8 +70,6 @@ class Logger:
             level (str): Log level - one of: 'info', 'debug', 'warning', 'error'.
                         Debug messages are only shown when verbose mode is enabled.
         """
-        # Suppress all logs to avoid console clutter
-        # Only log critical errors
         if level == "error" and "fatal" in message.lower():
             prefix = "✗"
             formatted_message = f"{prefix} [ERROR] {message}"

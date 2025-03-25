@@ -1,16 +1,15 @@
 import os
-import asyncio
 import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
-# Configure logging for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class ConnectionManager:
     """WebSocket connection manager"""
+
     def __init__(self):
         self.active_connections: list[WebSocket] = []
 
@@ -37,11 +36,9 @@ class ConnectionManager:
                 await connection.send_text(message)
 
 
-# Create a connection manager instance
 manager = ConnectionManager()
 
 
-# This will be used by the main FastAPI app
 router = FastAPI()
 
 
@@ -51,7 +48,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Receive and echo back the message
             message = await websocket.receive_text()
             await manager.send_personal_message(message, websocket)
     except WebSocketDisconnect:
@@ -62,10 +58,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    # For testing the WebSocket server independently
     import uvicorn
-    
-    websocket_port = int(os.environ.get("WEBSOCKET_PORT", 9090))
-    host = os.environ.get("WEBSOCKET_HOST", "127.0.0.1")
-    
+
+    websocket_port = int(os.environ.get("WS_PORT", 9090))
+    host = os.environ.get("WS_HOST", "127.0.0.1")
+
     uvicorn.run(router, host=host, port=websocket_port)

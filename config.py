@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     API_HOST: str = os.environ.get("API_HOST", "0.0.0.0")
 
     # WebSocket settings
-    WEBSOCKET_PORT: int = int(os.environ.get("WEBSOCKET_PORT", 9090))
-    WEBSOCKET_HOST: str = os.environ.get("WEBSOCKET_HOST", "127.0.0.1")
+    WS_PORT: int = int(os.environ.get("WS_PORT", 9090))
+    WS_HOST: str = os.environ.get("WS_HOST", "127.0.0.1")
 
     # Database settings - check if we have all required database parameters
     DB_USER: str = os.environ.get("DB_USER", "")

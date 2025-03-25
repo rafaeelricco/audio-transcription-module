@@ -38,7 +38,8 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
 
     API_HOST: str = os.getenv("API_HOST")
-    WEBSOCKET_HOST: str = os.getenv("WEBSOCKET_HOST")
+    WS_HOST: str = os.getenv("WS_HOST")
+    WS_PORT: int = int(os.getenv("WS_PORT"))
 
     ENVIRONMENT: str = os.getenv("ENV")
     DEBUG: bool = os.getenv("DEBUG").lower() in ("true", "1", "t")

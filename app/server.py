@@ -1,4 +1,4 @@
-"""Server initialization and WebSocket integration for the audio-to-text application."""
+"""Server initialization with API endpoints and WebSocket integration for the audio-to-text application."""
 
 import threading
 import asyncio
@@ -6,38 +6,44 @@ import logging
 import sys
 import uvicorn
 import os
+import platform
+import datetime
+from fastapi import FastAPI, APIRouter
 from app.ws import router as ws_router
 from app.config import get_settings
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-# Get application settings
 settings = get_settings()
+
+app = FastAPI(
+    title="Audio-to-Text API",
+    description="An API for processing YouTube videos and converting audio to text",
+    version="1.0.0",
+)
 
 
 def start_websocket_server():
     """Start the WebSocket server in a separate thread"""
     try:
         uvicorn.run(
-            ws_router, 
-            host=settings.WEBSOCKET_HOST, 
-            port=settings.WEBSOCKET_PORT,
-            log_level="error"
+            ws_router,
+            host=settings.WS_HOST,
+            port=settings.WS_PORT,
+            log_level="error",
         )
     except Exception as e:
         logging.error(f"WebSocket server error: {e}")
-        # Try alternative port if the default one is in use
         try:
             uvicorn.run(
-                ws_router, 
-                host=settings.WEBSOCKET_HOST, 
-                port=settings.WEBSOCKET_PORT + 1,
-                log_level="error"
+                ws_router,
+                host=settings.WS_HOST,
+                port=settings.WS_PORT + 1,
+                log_level="error",
             )
         except Exception as e:
             logging.error(f"WebSocket server failed on alternate port too: {e}")
@@ -48,3 +54,43 @@ def start_ws_server_thread():
     ws_thread = threading.Thread(target=start_websocket_server, daemon=True)
     ws_thread.start()
     return ws_thread
+
+
+@app.get("/")
+def index():
+    """Root endpoint that returns information about the API.
+
+    Returns:
+        Dictionary with API information and status
+    """
+    api_info = {
+        "name": "Audio-to-Text API",
+        "version": "1.0.0",
+        "description": "An API for processing YouTube videos and converting audio to text",
+        "endpoints": {
+            "/": "This information",
+            "/process": "Process YouTube URLs and convert audio to text (POST)",
+        },
+        "status": "online",
+        "server_time": datetime.datetime.now().isoformat(),
+        "environment": {
+            "python": platform.python_version(),
+            "system": platform.system(),
+            "node": platform.node(),
+        },
+    }
+
+    return api_info
+
+
+def start_api_server():
+    """Start the API server"""
+    try:
+        uvicorn.run(
+            app,
+            host=settings.API_HOST if hasattr(settings, "API_HOST") else "0.0.0.0",
+            port=settings.API_PORT if hasattr(settings, "API_PORT") else 8000,
+            log_level="info",
+        )
+    except Exception as e:
+        logging.error(f"API server error: {e}")

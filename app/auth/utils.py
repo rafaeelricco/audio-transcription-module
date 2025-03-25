@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.config import get_auth_settings
 from app.auth.models import TokenData, UserResponse
-from app.database import get_db
+from app.db.database import get_db
 from app.model.user import User
 
 auth_settings = get_auth_settings()
@@ -67,7 +67,6 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user doesn't have required permissions
     """
-    # Prepare authentication error message
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:

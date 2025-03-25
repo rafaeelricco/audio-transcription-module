@@ -18,7 +18,7 @@ from httpx import AsyncClient
 from app.auth.config import get_auth_settings
 from app.auth.models import UserResponse, GoogleUserInfo
 from app.auth.utils import create_access_token, get_current_user, get_user_response
-from app.database import get_db
+from app.db.database import get_db
 from app.model.user import User
 
 auth_settings = get_auth_settings()
