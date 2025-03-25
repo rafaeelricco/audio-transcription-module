@@ -1,34 +1,52 @@
-import os
 import sys
 import logging
 import uvicorn
 
 from dotenv import load_dotenv
 from pathlib import Path
-from app.server import start_ws_server_thread
 from config import settings
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-# Load environment variables
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
 
 def start_servers():
     """Start both the WebSocket server and FastAPI application"""
-    # Start the FastAPI application using Uvicorn
     uvicorn.run(
         "app.main:app",
+        ws="websockets",
         host=settings.APP_HOST,
         port=settings.APP_PORT,
         reload=settings.DEBUG,
         log_level="info" if settings.DEBUG else "error",
+        log_config={
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "standard": {
+                    "format": "* %(message)s",
+                },
+            },
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "standard",
+                },
+            },
+            "loggers": {
+                "": {
+                    "handlers": ["console"],
+                    "level": "INFO",
+                    "propagate": True,
+                },
+            },
+        },
     )
 
 

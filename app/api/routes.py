@@ -4,7 +4,17 @@ import datetime
 import uuid
 
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Security, status, Body, WebSocket, WebSocketDisconnect, Query
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Security,
+    status,
+    Body,
+    WebSocket,
+    WebSocketDisconnect,
+    Query,
+)
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from app.db.database import get_db
@@ -32,10 +42,10 @@ async def process_video(
     user: User = Depends(get_current_user),
 ):
     """Process a YouTube URL by running the transcription command.
-    
+
     This endpoint will execute the command equivalent to:
     python3 run.py --youtube "<URL>"
-    
+
     The logs and status can be tracked via the WebSocket endpoint at /api/status/{request_id}
     """
     request_id = str(uuid.uuid4())
@@ -45,12 +55,9 @@ async def process_video(
     db.add(db_request)
     db.commit()
 
-    # Start background processing using our ProcessRunner
     asyncio.create_task(
         ProcessRunner.run_youtube_process(
-            youtube_url=url,
-            request_id=request_id,
-            user_id=user.id
+            youtube_url=url, request_id=request_id, user_id=user.id
         )
     )
 
@@ -59,32 +66,37 @@ async def process_video(
 
 @router.get("/api/status/{request_id}", tags=["api"])
 async def get_status(
-    request_id: str, 
-    include_logs: bool = Query(False, description="Whether to include logs in the response"),
+    request_id: str,
+    include_logs: bool = Query(
+        False, description="Whether to include logs in the response"
+    ),
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
 ):
     """Get the status and optionally logs of a processing request"""
     request = (
-        db.query(ProcessingRequest).filter(
+        db.query(ProcessingRequest)
+        .filter(
             ProcessingRequest.id == request_id,
-            ProcessingRequest.user_id == user.id  # Ensure user can only see their own requests
-        ).first()
+            ProcessingRequest.user_id
+            == user.id,  # Ensure user can only see their own requests
+        )
+        .first()
     )
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
     response = {
-        "status": request.status, 
-        "result": request.result, 
+        "status": request.status,
+        "result": request.result,
         "url": request.url,
-        "created_at": request.created_at.isoformat() if request.created_at else None
+        "created_at": request.created_at.isoformat() if request.created_at else None,
     }
-    
+
     # Include logs if requested
     if include_logs and request.logs:
         response["logs"] = request.logs
-        
+
     return response
 
 

@@ -53,6 +53,10 @@ async def custom_swagger_ui_redirect():
 
 from app.api import router as api_router
 from app.auth.router import router as auth_router
+from app.ws import router as ws_router
 
 app.include_router(api_router)
 app.include_router(auth_router)
+
+# Mount the WebSocket router for real-time status updates
+app.mount("/ws", ws_router)

@@ -1,14 +1,12 @@
 """Server initialization with API endpoints and WebSocket integration for the audio-to-text application."""
 
-import threading
-import asyncio
 import logging
 import sys
 import uvicorn
-import os
 import platform
 import datetime
-from fastapi import FastAPI, APIRouter
+
+from fastapi import FastAPI
 from app.ws import router as ws_router
 from app.config import get_settings
 
@@ -26,34 +24,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
-def start_websocket_server():
-    """Start the WebSocket server in a separate thread"""
-    try:
-        uvicorn.run(
-            ws_router,
-            host=settings.WS_HOST,
-            port=settings.WS_PORT,
-            log_level="error",
-        )
-    except Exception as e:
-        logging.error(f"WebSocket server error: {e}")
-        try:
-            uvicorn.run(
-                ws_router,
-                host=settings.WS_HOST,
-                port=settings.WS_PORT + 1,
-                log_level="error",
-            )
-        except Exception as e:
-            logging.error(f"WebSocket server failed on alternate port too: {e}")
-
-
-def start_ws_server_thread():
-    """Start the WebSocket server in a background thread"""
-    ws_thread = threading.Thread(target=start_websocket_server, daemon=True)
-    ws_thread.start()
-    return ws_thread
+# Mount the WebSocket router directly to the main app
+# This eliminates the need for a separate WebSocket server
+app.mount("/ws", ws_router)
 
 
 @app.get("/")
@@ -84,8 +57,16 @@ def index():
 
 
 def start_api_server():
-    """Start the API server"""
+    """Start the API server with integrated WebSocket support"""
     try:
+        # Log that we're starting with WebSocket support
+        logging.info(
+            f"Starting API server with WebSocket support on port {settings.APP_PORT}"
+        )
+        logging.info(
+            f"WebSocket endpoints available at ws://{settings.APP_HOST}:{settings.APP_PORT}/ws/..."
+        )
+
         uvicorn.run(
             app,
             host=settings.APP_HOST if hasattr(settings, "APP_HOST") else "0.0.0.0",
