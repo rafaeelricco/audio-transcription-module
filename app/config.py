@@ -34,6 +34,8 @@ def get_postgres_uri():
 class Settings(BaseSettings):
     """Base settings for the application"""
 
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
+
     APP_NAME: str = "Audio-to-Text API"
     APP_VERSION: str = "1.0.0"
 
