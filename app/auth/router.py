@@ -80,14 +80,20 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
     try:
         # Complete OAuth flow
         token = await oauth.google.authorize_access_token(request)
-
-        # Get user info from Google
-        resp = await oauth.google.parse_id_token(request, token)
+        
+        # Get user info directly from Google's userinfo endpoint
+        async with AsyncClient() as client:
+            resp = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {token['access_token']}"},
+            )
+            user_data = resp.json()
+            
         user_info = GoogleUserInfo(
-            email=resp.get("email"),
-            name=resp.get("name"),
-            picture=resp.get("picture"),
-            sub=resp.get("sub"),
+            email=user_data.get("email"),
+            name=user_data.get("name"),
+            picture=user_data.get("picture"),
+            sub=user_data.get("sub"),
         )
 
         # Check if user exists in database
