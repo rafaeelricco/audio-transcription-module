@@ -3,8 +3,8 @@ import asyncio
 import datetime
 import uuid
 
-from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Security, status, Body
+from typing import List, Dict, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, Security, status, Body, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from app.db.database import get_db
@@ -14,6 +14,7 @@ from app.auth.utils import get_current_user
 from app.video.yt_downloader import YouTubeDownloader
 from app.utils.logger import Logger
 from app.utils.functions import ensure_dir
+from app.utils.command import ProcessRunner
 from app.ai.transcription import process_text
 from app.ws import manager as ws_manager
 
@@ -30,30 +31,61 @@ async def process_video(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Process a YouTube URL by running the transcription command.
+    
+    This endpoint will execute the command equivalent to:
+    python3 run.py --youtube "<URL>"
+    
+    The logs and status can be tracked via the WebSocket endpoint at /api/status/{request_id}
+    """
     request_id = str(uuid.uuid4())
     db_request = ProcessingRequest(
-        id=request_id, url=url, user_id=user.id, status="pending"
+        id=request_id, url=url, user_id=user.id, status="pending", logs=[]
     )
     db.add(db_request)
     db.commit()
 
-    # Start background processing
-    from run import process_url
-
-    asyncio.create_task(process_url(url, request_id))
+    # Start background processing using our ProcessRunner
+    asyncio.create_task(
+        ProcessRunner.run_youtube_process(
+            youtube_url=url,
+            request_id=request_id,
+            user_id=user.id
+        )
+    )
 
     return {"request_id": request_id}
 
 
 @router.get("/api/status/{request_id}", tags=["api"])
-async def get_status(request_id: str, db: Session = Depends(get_db)):
+async def get_status(
+    request_id: str, 
+    include_logs: bool = Query(False, description="Whether to include logs in the response"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    """Get the status and optionally logs of a processing request"""
     request = (
-        db.query(ProcessingRequest).filter(ProcessingRequest.id == request_id).first()
+        db.query(ProcessingRequest).filter(
+            ProcessingRequest.id == request_id,
+            ProcessingRequest.user_id == user.id  # Ensure user can only see their own requests
+        ).first()
     )
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    return {"status": request.status, "result": request.result, "url": request.url}
+    response = {
+        "status": request.status, 
+        "result": request.result, 
+        "url": request.url,
+        "created_at": request.created_at.isoformat() if request.created_at else None
+    }
+    
+    # Include logs if requested
+    if include_logs and request.logs:
+        response["logs"] = request.logs
+        
+    return response
 
 
 # Test Endpoints

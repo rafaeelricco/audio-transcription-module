@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import Column, String, Text, JSON, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, String, Text, JSON, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -14,6 +15,8 @@ class ProcessingRequest(Base):
     url = Column(String(512), nullable=False)
     status = Column(String(32), default='pending', nullable=False)
     result = Column(Text, nullable=True)
+    logs = Column(JSON, default=list, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     user = relationship("User", back_populates="requests")
@@ -39,4 +42,6 @@ class ProcessingRequest(Base):
             },
             "result": self.result,
             "status": self.status,
+            "logs": self.logs,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
