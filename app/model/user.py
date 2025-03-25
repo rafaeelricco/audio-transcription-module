@@ -14,7 +14,6 @@ class User(Base):
     name = Column(String(120), nullable=False)
     email = Column(String(120), nullable=False, unique=True)
 
-    # Relationship to processing requests
     requests = relationship("ProcessingRequest", back_populates="user")
 
     def __repr__(self):

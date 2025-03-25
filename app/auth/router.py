@@ -1,5 +1,8 @@
 """Authentication router for Google OAuth."""
 
+import uuid
+import json
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -9,29 +12,22 @@ from fastapi import (
     Response,
     Security,
 )
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from httpx import AsyncClient
-import uuid
-import json
-
 from app.auth.config import get_auth_settings
-from app.auth.models import Token, UserResponse, GoogleUserInfo
+from app.auth.models import UserResponse, GoogleUserInfo
 from app.auth.utils import create_access_token, get_current_user, get_user_response
 from app.database import get_db
 from app.model.user import User
 
-# Get authentication settings
 auth_settings = get_auth_settings()
 
-# Create router
 router = APIRouter(
     prefix="/auth",
     tags=["authentication"],
 )
 
-# Set up OAuth integration
 oauth = OAuth()
 oauth.register(
     name="google",
@@ -45,7 +41,6 @@ oauth.register(
 )
 
 
-# Google login endpoint
 @router.get("/login/google")
 async def login_via_google(request: Request):
     """
@@ -61,7 +56,6 @@ async def login_via_google(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-# Google callback endpoint
 @router.get("/callback/google")
 async def callback_google(request: Request, db: Session = Depends(get_db)):
     """
@@ -78,17 +72,15 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
         HTTPException: If OAuth flow fails
     """
     try:
-        # Complete OAuth flow
         token = await oauth.google.authorize_access_token(request)
-        
-        # Get user info directly from Google's userinfo endpoint
+
         async with AsyncClient() as client:
             resp = await client.get(
                 "https://www.googleapis.com/oauth2/v3/userinfo",
                 headers={"Authorization": f"Bearer {token['access_token']}"},
             )
             user_data = resp.json()
-            
+
         user_info = GoogleUserInfo(
             email=user_data.get("email"),
             name=user_data.get("name"),
@@ -96,11 +88,9 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
             sub=user_data.get("sub"),
         )
 
-        # Check if user exists in database
         user = db.query(User).filter(User.email == user_info.email).first()
 
         if user is None:
-            # Create new user
             user = User(
                 id=str(uuid.uuid4()), email=user_info.email, name=user_info.name
             )
@@ -108,7 +98,6 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(user)
 
-        # Create JWT access token
         access_token = create_access_token(
             data={
                 "sub": user.email,
@@ -116,12 +105,6 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
             }
         )
 
-        # Set up success response with token
-        response_data = json.dumps(
-            {"access_token": access_token, "token_type": "bearer"}
-        )
-
-        # Prepare a response page that shows the token and has JavaScript to store it in localStorage
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -165,7 +148,6 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
         )
 
 
-# Current user endpoint
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(
     current_user: User = Security(get_current_user, scopes=["user"])
@@ -182,7 +164,6 @@ async def read_users_me(
     return get_user_response(current_user)
 
 
-# Verify token endpoint
 @router.get("/verify", response_model=dict)
 async def verify_token(current_user: User = Security(get_current_user, scopes=[])):
     """
