@@ -4,7 +4,7 @@ from app.model.request import Base
 
 # Drop the existing table
 with engine.connect() as conn:
-    conn.execute(text('DROP TABLE IF EXISTS processing_requests CASCADE'))
+    conn.execute(text("DROP TABLE IF EXISTS processing_requests CASCADE"))
     conn.commit()
 
 # Recreate the table with the new schema
