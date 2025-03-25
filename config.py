@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     DEBUG: bool = os.environ.get("DEBUG", "True").lower() in ("true", "1", "t")
 
     # API settings
-    API_PORT: int = int(os.environ.get("API_PORT", 8000))
+    APP_PORT: int = int(os.environ.get("APP_PORT", 8000))
     APP_HOST: str = os.environ.get("APP_HOST", "0.0.0.0")
 
     # WebSocket settings

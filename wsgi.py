@@ -26,7 +26,7 @@ def start_servers():
     uvicorn.run(
         "app.main:app",
         host=settings.APP_HOST,
-        port=settings.API_PORT,
+        port=settings.APP_PORT,
         reload=settings.DEBUG,
         log_level="info" if settings.DEBUG else "error",
     )

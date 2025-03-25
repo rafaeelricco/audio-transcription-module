@@ -66,7 +66,7 @@ class Settings(BaseSettings):
         )
     )
 
-    API_PORT: int = int(os.getenv("APP_PORT"))
+    APP_PORT: int = int(os.getenv("APP_PORT"))
 
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY")
