@@ -3,7 +3,7 @@ import argparse
 import sys
 
 from typing import Optional
-from providers import OpenRouterProvider, GeminiProvider
+from app.ai.providers import OpenRouterProvider, GeminiProvider
 from dotenv import load_dotenv
 from app.utils.logger import Logger
 from app.utils.functions import load_config
