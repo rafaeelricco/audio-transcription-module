@@ -1,9 +1,6 @@
-"""
-FastAPI application entry point for the audio-to-text service.
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from pathlib import Path
 from app.config import get_settings
@@ -35,6 +32,23 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     init_db()
+
+
+@app.get("/", tags=["root"])
+async def root():
+    """Root endpoint that provides API information and redirects to docs."""
+    return {
+        "message": "Welcome to the Audio-to-Text API",
+        "version": "1.0.0",
+        "documentation": "/docs",
+        "endpoints": {"api": "/api", "auth": "/auth"},
+    }
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_redirect():
+    """Redirect to the Swagger UI documentation."""
+    return RedirectResponse(url="/docs")
 
 
 from app.api import router as api_router
