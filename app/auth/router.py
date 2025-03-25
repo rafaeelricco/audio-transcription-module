@@ -15,13 +15,13 @@ from fastapi import (
 from sqlalchemy.orm import Session
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from httpx import AsyncClient
-from app.auth.config import get_auth_settings
-from app.auth.models import UserResponse, GoogleUserInfo
+from app.config import get_settings
+from app.model.auth import UserResponse, GoogleUserInfo
 from app.auth.utils import create_access_token, get_current_user, get_user_response
 from app.db.database import get_db
 from app.model.user import User
 
-auth_settings = get_auth_settings()
+auth_settings = get_settings()
 
 router = APIRouter(
     prefix="/auth",
@@ -104,7 +104,7 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
                 "scopes": ["user", "requests"],
             }
         )
-        
+
         # Save the access token to the user's record in the database
         user.access_token = access_token
         db.commit()

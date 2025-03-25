@@ -24,8 +24,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Mount the WebSocket router directly to the main app
-# This eliminates the need for a separate WebSocket server
 app.mount("/ws", ws_router)
 
 
@@ -59,7 +57,6 @@ def index():
 def start_api_server():
     """Start the API server with integrated WebSocket support"""
     try:
-        # Log that we're starting with WebSocket support
         logging.info(
             f"Starting API server with WebSocket support on port {settings.APP_PORT}"
         )

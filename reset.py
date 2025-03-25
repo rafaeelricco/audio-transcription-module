@@ -14,20 +14,18 @@ def table_exists(table_name):
 def reset_processing_requests_table():
     """Reset the processing_requests table by dropping and recreating it."""
     try:
-        # Drop the table if it exists
         with engine.begin() as conn:
             conn.execute(text("DROP TABLE IF EXISTS processing_requests CASCADE"))
-        
-        # Verify the table was dropped
-        if table_exists('processing_requests'):
+
+        if table_exists("processing_requests"):
             print("Warning: processing_requests table still exists after drop attempt")
-        
-        # Small delay to ensure DB operations complete
+
         time.sleep(0.5)
-        
-        # Recreate the table with the new schema
+
         RequestBase.metadata.create_all(bind=engine)
-        print("Successfully reset the processing_requests table with the updated schema.")
+        print(
+            "Successfully reset the processing_requests table with the updated schema."
+        )
     except Exception as e:
         print(f"Error resetting processing_requests table: {e}")
         raise
@@ -36,26 +34,23 @@ def reset_processing_requests_table():
 def reset_users_table():
     """Reset the users table by dropping and recreating it."""
     try:
-        # Need to drop processing_requests first as it depends on users
-        if table_exists('processing_requests'):
+        if table_exists("processing_requests"):
             with engine.begin() as conn:
                 conn.execute(text("DROP TABLE IF EXISTS processing_requests CASCADE"))
                 print("Dropped dependent table processing_requests first")
-        
-        # Drop the users table
+
         with engine.begin() as conn:
             conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
-        
-        # Verify the table was dropped
-        if table_exists('users'):
+
+        if table_exists("users"):
             print("Warning: users table still exists after drop attempt")
-        
-        # Small delay to ensure DB operations complete
+
         time.sleep(0.5)
-        
-        # Recreate the table with the new schema
+
         UserBase.metadata.create_all(bind=engine)
-        print("Successfully reset the users table with the updated schema including access_token field.")
+        print(
+            "Successfully reset the users table with the updated schema including access_token field."
+        )
     except Exception as e:
         print(f"Error resetting users table: {e}")
         raise
@@ -64,7 +59,6 @@ def reset_users_table():
 def reset_all_tables():
     """Reset all tables in the database in the correct order."""
     try:
-        # Reset in correct order - dependent tables first
         reset_processing_requests_table()
         reset_users_table()
         print("All tables have been reset successfully.")

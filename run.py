@@ -225,30 +225,24 @@ async def transcribe_audio(
 async def process_url(url: str, request_id: str):
     from app.model.request import ProcessingRequest
     from app.db.database import SessionLocal
-    
+
     db = SessionLocal()
     try:
-        # Update status to processing
-        db.query(ProcessingRequest)\
-           .filter(ProcessingRequest.id == request_id)\
-           .update({"status": "processing"})
+        db.query(ProcessingRequest).filter(ProcessingRequest.id == request_id).update(
+            {"status": "processing"}
+        )
         db.commit()
-        
-        # Existing processing logic here
-        result = await transcribe_audio({"file_path": url})  # Modify your existing function
-        
-        # Update final status
-        db.query(ProcessingRequest)\
-           .filter(ProcessingRequest.id == request_id)\
-           .update({
-               "status": "completed",
-               "result": result
-           })
+
+        result = await transcribe_audio({"file_path": url})
+
+        db.query(ProcessingRequest).filter(ProcessingRequest.id == request_id).update(
+            {"status": "completed", "result": result}
+        )
         db.commit()
     except Exception as e:
-        db.query(ProcessingRequest)\
-           .filter(ProcessingRequest.id == request_id)\
-           .update({"status": "failed"})
+        db.query(ProcessingRequest).filter(ProcessingRequest.id == request_id).update(
+            {"status": "failed"}
+        )
         db.commit()
     finally:
         db.close()
@@ -509,7 +503,9 @@ def main():
                         "title": os.path.basename(file_path),
                     }
                     try:
-                        result = asyncio.run(transcribe_audio(audio_info, output_path, device))
+                        result = asyncio.run(
+                            transcribe_audio(audio_info, output_path, device)
+                        )
                         if result:
                             save_and_process_transcript(
                                 result["text"], output_path, os.path.basename(file_path)

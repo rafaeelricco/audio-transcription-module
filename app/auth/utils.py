@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.orm import Session
 
 from app.auth.config import get_auth_settings
-from app.auth.models import TokenData, UserResponse
+from app.model.auth import TokenData, UserResponse
 from app.db.database import get_db
 from app.model.user import User
 

@@ -4,7 +4,9 @@ import uvicorn
 
 from dotenv import load_dotenv
 from pathlib import Path
-from config import settings
+from app.config import get_settings
+
+settings = get_settings()
 
 logging.basicConfig(
     level=logging.INFO,
