@@ -104,6 +104,10 @@ async def callback_google(request: Request, db: Session = Depends(get_db)):
                 "scopes": ["user", "requests"],
             }
         )
+        
+        # Save the access token to the user's record in the database
+        user.access_token = access_token
+        db.commit()
 
         html_content = f"""
         <!DOCTYPE html>
