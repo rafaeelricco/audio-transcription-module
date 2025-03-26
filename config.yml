@@ -3,23 +3,38 @@ providers:
     api_key: ${OPENROUTER_API_KEY}
     base_url: https://openrouter.ai/api/v1
     models:
-      default: google/gemini-2.0-flash-thinking-exp:free
+      default: google/gemini-2.5-pro-exp-03-25:free
       options:
         - qwen/qwq-32b:free
         - deepseek/deepseek-r1-zero:free
         - deepseek/deepseek-r1:free
         - google/gemini-2.0-flash-thinking-exp:free
+        - google/gemini-2.5-pro-exp-03-25:free
+    model_configs:
+      google/gemini-2.5-pro-exp-03-25:free:
+        temperature: 1.0
+        top_p: 0.95
+        top_k: 64
+        max_output_tokens: 8192
+        response_mime_type: text/plain
 
   gemini:
     api_key: ${GEMINI_API_KEY}
     models:
       default: gemini-2.0-flash
       options:
+        - gemini-2.5-pro-exp-03-25
         - gemma-3-27b-it
         - gemini-2.0-flash
         - gemini-2.0-flash-thinking-exp-01-21
         - learnlm-1.5-pro-experimental
     model_configs:
+      gemini-2.5-pro-exp-03-25:
+        temperature: 1.0
+        top_p: 0.95
+        top_k: 64
+        max_output_tokens: 8192
+        response_mime_type: text/plain
       gemma-3-27b-it:
         temperature: 1.0
         top_p: 0.95
