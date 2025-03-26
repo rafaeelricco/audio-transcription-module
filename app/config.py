@@ -56,18 +56,15 @@ class Settings(BaseSettings):
     DB_PORT: str = os.getenv("DB_PORT")
     DB_NAME: str = os.getenv("DB_NAME")
     DB_SSL: bool = os.getenv("DB_SSL").lower() in ("true", "1", "t")
-    
-    # Authentication settings
+
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    
-    # OAuth settings
+
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET: SecretStr = SecretStr(os.getenv("GOOGLE_CLIENT_SECRET") or "")
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/callback/google"
-    
-    # API scopes
+
     SCOPES: dict = {
         "user": "Read information about the current user.",
         "requests": "Read and create audio processing requests.",
@@ -88,7 +85,6 @@ class Settings(BaseSettings):
         )
     )
 
-    # API keys
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY")
 

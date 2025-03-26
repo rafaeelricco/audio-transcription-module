@@ -1,9 +1,3 @@
-"""
-Utilities Module
-
-Contains common utility functions used across the audio-to-text application.
-"""
-
 import os
 import re
 import yaml

@@ -13,7 +13,7 @@ class ProcessingRequest(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     url = Column(String(512), nullable=False)
-    status = Column(String(32), default='pending', nullable=False)
+    status = Column(String(32), default="pending", nullable=False)
     result = Column(Text, nullable=True)
     logs = Column(JSON, default=list, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

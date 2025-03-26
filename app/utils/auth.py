@@ -3,10 +3,9 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from typing import Optional, Dict, Any
-from fastapi import Depends, HTTPException, status, Security
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.orm import Session
-
 from app.config import get_settings
 from app.model.auth import TokenData, UserResponse
 from app.db.database import get_db

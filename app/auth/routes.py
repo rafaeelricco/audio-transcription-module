@@ -1,7 +1,6 @@
 """Authentication router for Google OAuth."""
 
 import uuid
-import json
 
 from fastapi import (
     APIRouter,
