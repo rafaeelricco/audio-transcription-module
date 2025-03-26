@@ -17,7 +17,7 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 from httpx import AsyncClient
 from app.config import get_settings
 from app.model.auth import UserResponse, GoogleUserInfo
-from app.auth.utils import create_access_token, get_current_user, get_user_response
+from app.utils.auth import create_access_token, get_current_user, get_user_response
 from app.db.database import get_db
 from app.model.user import User
 

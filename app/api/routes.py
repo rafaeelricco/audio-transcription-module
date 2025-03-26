@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-import subprocess
+import sys
 import json
 from typing import List
 from fastapi import (
@@ -9,6 +9,7 @@ from fastapi import (
     HTTPException,
     Body,
     Query,
+    BackgroundTasks
 )
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
@@ -30,38 +31,61 @@ class ProcessRunner:
     @staticmethod
     async def run_youtube_process(youtube_url: str, request_id: str, user_id: str, db: Session):
         """Run the youtube transcription process and send updates via websocket"""
+        db_session = db  # Create a ref to prevent issues with async context
+        logs = []
+        
         try:
             # Update status to processing
-            db.query(ProcessingRequest).filter(
+            db_session.query(ProcessingRequest).filter(
                 ProcessingRequest.id == request_id,
                 ProcessingRequest.user_id == user_id
-            ).update({"status": "processing"})
-            db.commit()
+            ).update({
+                "status": "processing", 
+                "logs": logs
+            })
+            db_session.commit()
 
-            # Create subprocess to run the transcription
-            process = subprocess.Popen(
-                ["python3", "run.py", "--youtube", youtube_url],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True
+            # Create subprocess to run the transcription using asyncio
+            process = await asyncio.create_subprocess_exec(
+                sys.executable, "run.py", "--youtube", youtube_url, "--verbose",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT
             )
 
             # Read output line by line and send via websocket
-            for line in process.stdout:
-                if line.strip():
+            async for line_bytes in process.stdout:
+                line = line_bytes.decode('utf-8').strip()
+                if line:
+                    log_entry = {
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "status": "processing",
+                        "message": line
+                    }
+                    
+                    logs.append(log_entry)
+                    
+                    # Update logs in the database periodically
+                    if len(logs) % 10 == 0:  # Update every 10 logs to reduce DB load
+                        db_session.query(ProcessingRequest).filter(
+                            ProcessingRequest.id == request_id,
+                            ProcessingRequest.user_id == user_id
+                        ).update({"logs": logs})
+                        db_session.commit()
+                    
                     await manager.send_status_update(
                         user_id,
                         request_id,
                         {
                             "timestamp": datetime.utcnow().isoformat(),
                             "status": "processing",
-                            "message": line.strip(),
+                            "message": line,
                             "data": {"url": youtube_url}
-                        }
+                        },
+                        db_session
                     )
 
             # Wait for process to complete
-            return_code = process.wait()
+            return_code = await process.wait()
 
             # Update final status
             if return_code == 0:
@@ -71,11 +95,21 @@ class ProcessRunner:
                 status = "failed"
                 message = f"Transcription failed with code {return_code}"
 
-            db.query(ProcessingRequest).filter(
+            log_entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "status": status,
+                "message": message
+            }
+            logs.append(log_entry)
+
+            db_session.query(ProcessingRequest).filter(
                 ProcessingRequest.id == request_id,
                 ProcessingRequest.user_id == user_id
-            ).update({"status": status})
-            db.commit()
+            ).update({
+                "status": status,
+                "logs": logs
+            })
+            db_session.commit()
 
             await manager.send_status_update(
                 user_id,
@@ -85,15 +119,28 @@ class ProcessRunner:
                     "status": status,
                     "message": message,
                     "data": {"url": youtube_url}
-                }
+                },
+                db_session
             )
 
         except Exception as e:
-            db.query(ProcessingRequest).filter(
+            error_message = f"Error during processing: {str(e)}"
+            log_entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "status": "error",
+                "message": error_message
+            }
+            logs.append(log_entry)
+            
+            db_session.query(ProcessingRequest).filter(
                 ProcessingRequest.id == request_id,
                 ProcessingRequest.user_id == user_id
-            ).update({"status": "failed", "result": {"error": str(e)}})
-            db.commit()
+            ).update({
+                "status": "failed", 
+                "result": {"error": str(e)},
+                "logs": logs
+            })
+            db_session.commit()
 
             await manager.send_status_update(
                 user_id,
@@ -101,14 +148,16 @@ class ProcessRunner:
                 {
                     "timestamp": datetime.utcnow().isoformat(),
                     "status": "error",
-                    "message": f"Error during processing: {str(e)}",
+                    "message": error_message,
                     "data": {"url": youtube_url}
-                }
+                },
+                db_session
             )
 
 
 @router.post("/api/process", tags=["api"])
 async def process_video(
+    background_tasks: BackgroundTasks,
     url: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -118,6 +167,7 @@ async def process_video(
     This endpoint will execute the command equivalent to:
     python3 run.py --youtube "<URL>"
 
+    The processing happens in the background and the request returns immediately.
     The logs and status can be tracked via the WebSocket endpoint at /ws/status/{request_id}
     """
     request_id = str(uuid.uuid4())
@@ -127,20 +177,27 @@ async def process_video(
     db.add(db_request)
     db.commit()
 
-    asyncio.create_task(
-        ProcessRunner.run_youtube_process(
-            youtube_url=url, request_id=request_id, user_id=user.id, db=db
-        )
+    # Add the processing task to background tasks
+    # This ensures the endpoint returns immediately while processing continues
+    background_tasks.add_task(
+        ProcessRunner.run_youtube_process,
+        youtube_url=url, request_id=request_id, user_id=user.id, db=db
     )
 
-    return {"request_id": request_id}
+    # Return info about how to connect to WebSocket
+    return {
+        "request_id": request_id,
+        "status": "pending",
+        "message": "Processing started. Connect to WebSocket to see live updates.",
+        "websocket_url": f"/ws/status/{request_id}?token=YOUR_TOKEN_HERE"
+    }
 
 
 @router.get("/api/status/{request_id}", tags=["api"])
 async def get_status(
     request_id: str,
     include_logs: bool = Query(
-        False, description="Whether to include logs in the response"
+        True, description="Whether to include logs in the response"
     ),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -165,7 +222,7 @@ async def get_status(
         "created_at": request.created_at.isoformat() if request.created_at else None,
     }
 
-    # Include logs if requested
+    # Include logs if requested - now default to True
     if include_logs and request.logs:
         response["logs"] = request.logs
 

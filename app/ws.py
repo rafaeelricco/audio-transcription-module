@@ -82,9 +82,9 @@ class ConnectionManager:
             del self.connection_users[websocket]
 
     async def send_status_update(
-        self, user_id: str, request_id: str, status_update: Dict
+        self, user_id: str, request_id: str, status_update: Dict, db: Session = None
     ):
-        """Send a status update to all connections for a specific user"""
+        """Send a status update to all connections for a specific user and save to DB"""
         self.status_tracker.add_status(request_id, status_update)
 
         message = {
@@ -95,6 +95,33 @@ class ConnectionManager:
             "message": status_update.get("message"),
             "data": status_update.get("data"),
         }
+        
+        # Save log to database if db session provided
+        if db:
+            try:
+                request = (
+                    db.query(ProcessingRequest)
+                    .filter(
+                        ProcessingRequest.id == request_id,
+                        ProcessingRequest.user_id == user_id,
+                    )
+                    .first()
+                )
+                
+                if request:
+                    if not request.logs:
+                        request.logs = []
+                    
+                    log_entry = {
+                        "timestamp": status_update.get("timestamp"),
+                        "status": status_update.get("status"),
+                        "message": status_update.get("message"),
+                    }
+                    
+                    request.logs.append(log_entry)
+                    db.commit()
+            except Exception as e:
+                logger.error(f"Error saving log to database: {e}")
 
         if user_id in self.user_connections:
             for connection in self.user_connections[user_id]:
@@ -103,7 +130,7 @@ class ConnectionManager:
                         await connection.send_json(message)
                     except Exception as e:
                         logger.error(f"Error sending message: {e}")
-                        await self.disconnect(connection)
+                        self.disconnect(connection)
 
     async def send_initial_status(
         self, websocket: WebSocket, request_id: str, user_id: str, db: Session
@@ -173,7 +200,8 @@ async def verify_token(token: str) -> Optional[str]:
             return None
 
         return email
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT Error: {str(e)}")
         return None
 
 
@@ -208,8 +236,9 @@ async def status_websocket_endpoint(
         token: JWT authentication token
         db: Database session
     """
+    await websocket.accept()
+    
     if not token:
-        await websocket.accept()
         await websocket.send_json(
             {
                 "type": "error",
@@ -221,13 +250,26 @@ async def status_websocket_endpoint(
 
     user_id = await verify_token(token)
     if not user_id:
-        await websocket.accept()
         await websocket.send_json(
             {"type": "error", "message": "Invalid authentication token."}
         )
         await websocket.close()
         return
 
+    # Find user by email (user_id is actually the email from JWT)
+    from app.model.user import User
+    user = db.query(User).filter(User.email == user_id).first()
+    
+    if not user:
+        await websocket.send_json(
+            {"type": "error", "message": "User not found."}
+        )
+        await websocket.close()
+        return
+        
+    # Now use the actual user.id
+    user_id = user.id
+    
     request = (
         db.query(ProcessingRequest)
         .filter(
@@ -238,12 +280,25 @@ async def status_websocket_endpoint(
     )
 
     if not request:
-        await websocket.accept()
-        await websocket.send_json(
-            {"type": "error", "message": "Request not found or access denied."}
-        )
-        await websocket.close()
-        return
+        # Just return logs if any, even if request not found
+        status_updates = manager.status_tracker.get_status_updates(request_id)
+        if status_updates:
+            for update in status_updates:
+                message = {
+                    "type": "status_update",
+                    "request_id": request_id,
+                    "timestamp": update.get("timestamp"),
+                    "status": update.get("status"),
+                    "message": update.get("message"),
+                    "data": update.get("data"),
+                }
+                await websocket.send_json(message)
+        else:
+            await websocket.send_json(
+                {"type": "error", "message": "Request not found or access denied."}
+            )
+            await websocket.close()
+            return
 
     await manager.connect(websocket, user_id)
 
@@ -289,6 +344,7 @@ async def poll_database_for_updates(
     """
     last_status = None
     last_result = None
+    last_logs_count = 0
 
     while True:
         try:
@@ -302,9 +358,15 @@ async def poll_database_for_updates(
             )
 
             if request:
-                if request.status != last_status or request.result != last_result:
+                logs_count = len(request.logs) if request.logs else 0
+                
+                if (request.status != last_status or 
+                    request.result != last_result or 
+                    logs_count != last_logs_count):
+                    
                     last_status = request.status
                     last_result = request.result
+                    last_logs_count = logs_count
 
                     update = {
                         "type": "db_status_update",
