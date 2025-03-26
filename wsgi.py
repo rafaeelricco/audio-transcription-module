@@ -2,11 +2,9 @@ import sys
 import logging
 import gunicorn.app.base
 
-from os import environ
 from dotenv import load_dotenv
 from pathlib import Path
 
-from app.main import app
 from app.config import get_settings
 
 settings = get_settings()

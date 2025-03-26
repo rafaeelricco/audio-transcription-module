@@ -113,6 +113,34 @@ async def get_current_user(
     return user
 
 
+def decode_token(token: str) -> dict:
+    """
+    Decode and validate a JWT token without checking scopes.
+    
+    Args:
+        token: JWT token to decode
+        
+    Returns:
+        dict: The decoded token payload
+        
+    Raises:
+        JWTError: If token is invalid
+    """
+    payload = jwt.decode(
+        token, auth_settings.SECRET_KEY, algorithms=[auth_settings.ALGORITHM]
+    )
+    
+    # Extract user ID from payload
+    email = payload.get("sub")
+    if email is None:
+        raise JWTError("Missing subject claim")
+        
+    # Add user_id to payload for easy access
+    payload["user_id"] = email
+        
+    return payload
+
+
 def get_user_response(user: User) -> UserResponse:
     """
     Convert User model to UserResponse schema.
