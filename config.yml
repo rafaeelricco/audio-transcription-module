@@ -15,7 +15,6 @@ providers:
         temperature: 1.0
         top_p: 0.95
         top_k: 64
-        max_output_tokens: 8192
         response_mime_type: text/plain
 
   gemini:
@@ -33,27 +32,23 @@ providers:
         temperature: 1.0
         top_p: 0.95
         top_k: 64
-        max_output_tokens: 8192
         response_mime_type: text/plain
       gemma-3-27b-it:
         temperature: 1.0
         top_p: 0.95
         top_k: 64
-        max_output_tokens: 8192
         response_mime_type: text/plain
 
       gemini-2.0-flash:
         temperature: 1
         top_p: 0.95
         top_k: 40
-        max_output_tokens: 8192
         response_mime_type: text/plain
 
       gemini-2.0-flash-thinking-exp-01-21:
         temperature: 0.7
         top_p: 0.95
         top_k: 64
-        max_output_tokens: 65536
         safety_settings:
           - category: HARM_CATEGORY_CIVIC_INTEGRITY
             threshold: "OFF"
@@ -63,7 +58,6 @@ providers:
         temperature: 1
         top_p: 0.95
         top_k: 64
-        max_output_tokens: 8192
         response_mime_type: text/plain
 
 default_provider: gemini
