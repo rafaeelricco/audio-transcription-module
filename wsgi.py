@@ -1,19 +1,10 @@
-import sys
-import logging
 import gunicorn.app.base
 
 from dotenv import load_dotenv
 from pathlib import Path
-
 from app.config import get_settings
 
 settings = get_settings()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
 
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
@@ -37,10 +28,9 @@ def start_servers():
 
     options = {
         "bind": f"{settings.APP_HOST}:{settings.APP_PORT}",
-        "workers": 4,
-        "worker_class": "uvicorn.workers.UvicornWorker",
-        "reload": settings.DEBUG,
-        "loglevel": "info" if settings.DEBUG else "error",
+        "workers": 1,
+        "capture_output": True,
+        "loglevel": "info",
     }
 
     StandaloneApplication("app.factory:app", options).run()
