@@ -1,34 +1,49 @@
-annotated-types==0.7.0
-anyio==4.9.0
-Authlib==1.5.1
-fastapi==0.115.12
-google-auth==2.38.0
-google-genai==1.7.0
-httpcore==1.0.7
-httpx==0.28.1
-huggingface-hub==0.28.1
-openai==1.61.0
-openai-whisper==20240930
-packaging==24.2
-psutil==7.0.0
-pydantic[email]
-pydantic-settings==2.8.1
-pydantic_core==2.27.2
-python-dateutil==2.9.0.post0
-python-dotenv==1.0.1
-python-jose==3.4.0
-requests==2.32.3
+# Web Framework
+fastapi
+uvicorn
+starlette
+
+# Authentication 
+Authlib
+python-jose
+
+# Database
+SQLAlchemy
+alembic
+psycopg2-binary
+
+# HTTP Clients
+httpx
+requests
 urllib3<2.0,>=1.26.0
-SQLAlchemy==2.0.39
-starlette==0.46.1
-torch==2.6.0
-tqdm==4.67.1
-typing_extensions==4.12.2
-uvicorn==0.34.0
-websockets==15.0.1
-yt-dlp==2025.2.19
-h11
+
+# Data Validation
+pydantic[email]
+pydantic-settings
+pydantic_core
+annotated-types
+
+# Audio Processing
+openai-whisper
+torch
+numpy
+huggingface-hub
+
+# Google Services
+google-auth
+google-genai
+
+# Utilities
+python-dotenv
+python-dateutil
 click
+websockets
+picows
 certifi
-psycopg2
 itsdangerous
+
+# YouTube
+yt-dlp
+
+# AI Integration
+openai
