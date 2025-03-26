@@ -20,7 +20,7 @@ providers:
   gemini:
     api_key: ${GEMINI_API_KEY}
     models:
-      default: gemini-2.0-flash
+      default: gemini-2.5-pro-exp-03-25
       options:
         - gemini-2.5-pro-exp-03-25
         - gemma-3-27b-it
