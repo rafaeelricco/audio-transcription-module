@@ -4,4 +4,4 @@ from fastapi import APIRouter
 
 router = APIRouter(prefix="/api", tags=["api"])
 
-from app.api.routes import *  # noqa
+from app.api.routes import * 

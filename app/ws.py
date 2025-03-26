@@ -9,13 +9,13 @@ from starlette.websockets import WebSocketState
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
-from app.auth.config import get_auth_settings
+from app.config import get_settings
 from app.db.database import get_db
 from app.model.request import ProcessingRequest
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-auth_settings = get_auth_settings()
+auth_settings = get_settings()
 
 
 class ProcessingStatus:

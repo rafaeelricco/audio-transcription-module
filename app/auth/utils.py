@@ -7,12 +7,12 @@ from fastapi import Depends, HTTPException, status, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.orm import Session
 
-from app.auth.config import get_auth_settings
+from app.config import get_settings
 from app.model.auth import TokenData, UserResponse
 from app.db.database import get_db
 from app.model.user import User
 
-auth_settings = get_auth_settings()
+auth_settings = get_settings()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", scopes=auth_settings.SCOPES)
 
