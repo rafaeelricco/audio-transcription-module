@@ -43,7 +43,7 @@ def start_servers():
         "loglevel": "info" if settings.DEBUG else "error",
     }
 
-    StandaloneApplication("app.main:app", options).run()
+    StandaloneApplication("app.factory:app", options).run()
 
 
 if __name__ == "__main__":

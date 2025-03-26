@@ -1,7 +1,4 @@
-"""API module for the audio-to-text application."""
+"""WebSocket module for real-time status updates."""
 
-from fastapi import APIRouter
-
-router = APIRouter(prefix="/api", tags=["api"])
-
-from app.api.routes import * 
+# Re-export manager from routes for backward compatibility
+from app.ws.routes import manager
