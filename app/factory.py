@@ -53,8 +53,8 @@ async def custom_swagger_ui_redirect():
 
 from app.api.routes import router as api_router
 from app.auth.routes import router as auth_router
-# from app.ws.routes import router as ws_router
+from app.ws.routes import router as ws_router
 
 app.include_router(api_router)
 app.include_router(auth_router)
-# app.include_router(ws_router)
+app.include_router(ws_router)
