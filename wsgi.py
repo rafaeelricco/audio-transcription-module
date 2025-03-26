@@ -1,9 +1,12 @@
 import sys
 import logging
-import uvicorn
+import gunicorn.app.base
 
+from os import environ
 from dotenv import load_dotenv
 from pathlib import Path
+
+from app.main import app
 from app.config import get_settings
 
 settings = get_settings()
@@ -19,37 +22,30 @@ load_dotenv(dotenv_path=env_path)
 
 
 def start_servers():
-    """Start both the WebSocket server and FastAPI application"""
-    uvicorn.run(
-        "app.main:app",
-        ws="websockets",
-        host=settings.APP_HOST,
-        port=settings.APP_PORT,
-        reload=settings.DEBUG,
-        log_level="info" if settings.DEBUG else "error",
-        log_config={
-            "version": 1,
-            "disable_existing_loggers": False,
-            "formatters": {
-                "standard": {
-                    "format": "* %(message)s",
-                },
-            },
-            "handlers": {
-                "console": {
-                    "class": "logging.StreamHandler",
-                    "formatter": "standard",
-                },
-            },
-            "loggers": {
-                "": {
-                    "handlers": ["console"],
-                    "level": "INFO",
-                    "propagate": True,
-                },
-            },
-        },
-    )
+    """Start both the WebSocket server and FastAPI application using Gunicorn"""
+
+    class StandaloneApplication(gunicorn.app.base.BaseApplication):
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+
+        def load_config(self):
+            for key, value in self.options.items():
+                self.cfg.set(key.lower(), value)
+
+        def load(self):
+            return self.application
+
+    options = {
+        "bind": f"{settings.APP_HOST}:{settings.APP_PORT}",
+        "workers": 4,
+        "worker_class": "uvicorn.workers.UvicornWorker",
+        "reload": settings.DEBUG,
+        "loglevel": "info" if settings.DEBUG else "error",
+    }
+
+    StandaloneApplication("app.main:app", options).run()
 
 
 if __name__ == "__main__":

@@ -1,39 +1,26 @@
-# Web Framework
+
 fastapi
+gunicorn
 uvicorn
 starlette
-
-# Authentication 
 Authlib
 python-jose
-
-# Database
 SQLAlchemy
 alembic
 psycopg2-binary
-
-# HTTP Clients
 httpx
 requests
 urllib3<2.0,>=1.26.0
-
-# Data Validation
 pydantic[email]
 pydantic-settings
 pydantic_core
 annotated-types
-
-# Audio Processing
 openai-whisper
 torch
 numpy
 huggingface-hub
-
-# Google Services
 google-auth
 google-genai
-
-# Utilities
 python-dotenv
 python-dateutil
 click
@@ -41,9 +28,5 @@ websockets
 picows
 certifi
 itsdangerous
-
-# YouTube
 yt-dlp
-
-# AI Integration
 openai
