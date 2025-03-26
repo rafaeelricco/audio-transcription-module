@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=env_path)
 def start_servers():
     """Start both the WebSocket server and FastAPI application using Gunicorn"""
 
-    class StandaloneApplication(gunicorn.app.base.BaseApplication):
+    class WSGIApp(gunicorn.app.base.BaseApplication):
         def __init__(self, app, options=None):
             self.options = options or {}
             self.application = app
@@ -33,7 +33,7 @@ def start_servers():
         "loglevel": "info",
     }
 
-    StandaloneApplication("app.factory:app", options).run()
+    WSGIApp("app.factory:app", options).run()
 
 
 if __name__ == "__main__":
