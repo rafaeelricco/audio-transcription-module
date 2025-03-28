@@ -8,8 +8,8 @@ This module implements WebSocket endpoints for real-time communication, includin
 
 import asyncio
 import json
-from typing import Dict, Callable, Optional, List, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Dict, Optional, List, Any
+from fastapi import APIRouter, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -24,20 +24,15 @@ from picows import (
 )
 
 from app.db.database import get_db
-from app.model.user import User
 from app.model.request import ProcessingRequest
 from app.utils.auth import verify_token
 
-# Create a router to include in the FastAPI app
 router = APIRouter()
 
 
-# Active connections manager
 class ConnectionManager:
     def __init__(self):
-        # Map of user_id -> {request_id -> transport}
         self.active_connections: Dict[str, Dict[str, WSTransport]] = {}
-        # Map of transport -> {user_id, request_id}
         self.connection_info: Dict[WSTransport, Dict[str, str]] = {}
 
     def register_connection(
@@ -61,7 +56,6 @@ class ConnectionManager:
                 if request_id in self.active_connections[user_id]:
                     del self.active_connections[user_id][request_id]
 
-                # Clean up user entry if no more connections
                 if not self.active_connections[user_id]:
                     del self.active_connections[user_id]
 
@@ -88,7 +82,6 @@ class ConnectionManager:
             except Exception as e:
                 print(f"Error sending status update: {str(e)}")
         else:
-            # Update the database with the status even if no active connection
             if data.get("status") in ["completed", "failed", "error"]:
                 try:
                     request = (
@@ -107,11 +100,9 @@ class ConnectionManager:
                     print(f"Error updating database: {str(e)}")
 
 
-# Create a global connection manager instance
 manager = ConnectionManager()
 
 
-# Status WebSocket listener for processing request updates
 class StatusListener(WSListener):
     def __init__(self, user_id: str, request_id: str, db: Session):
         self.user_id = user_id
@@ -125,10 +116,7 @@ class StatusListener(WSListener):
         self.transport = transport
         manager.register_connection(self.user_id, self.request_id, transport)
 
-        # Send initial status from database
         asyncio.create_task(self.send_initial_status())
-
-        # Start polling for updates
         self.polling_task = asyncio.create_task(self.poll_status_updates())
 
     async def send_initial_status(self):
@@ -165,7 +153,6 @@ class StatusListener(WSListener):
                 }
                 message = json.dumps(error_data)
                 self.transport.send(WSMsgType.TEXT, message.encode())
-                # Close connection as the request doesn't exist
                 self.transport.send_close(WSCloseCode.POLICY_VIOLATION)
                 self.transport.disconnect()
 
@@ -182,13 +169,11 @@ class StatusListener(WSListener):
         """Poll for status updates from the database every 2 seconds."""
         try:
             while True:
-                await asyncio.sleep(2)  # Poll every 2 seconds
+                await asyncio.sleep(2)
 
-                # Check if connection is still active
                 if not self.transport or self.transport.is_closed():
                     break
 
-                # Get the latest status from the database
                 request = (
                     self.db.query(ProcessingRequest)
                     .filter(
@@ -199,7 +184,6 @@ class StatusListener(WSListener):
                 )
 
                 if request:
-                    # Only send update if status is terminal
                     if request.status in ["completed", "failed", "error"]:
                         status_data = {
                             "timestamp": datetime.utcnow().isoformat(),
@@ -215,12 +199,10 @@ class StatusListener(WSListener):
                         message = json.dumps(status_data)
                         self.transport.send(WSMsgType.TEXT, message.encode())
 
-                        # If status is terminal, close connection
                         self.transport.send_close(WSCloseCode.OK)
                         self.transport.disconnect()
                         break
                 else:
-                    # Request no longer exists
                     error_data = {
                         "timestamp": datetime.utcnow().isoformat(),
                         "status": "error",
@@ -244,7 +226,6 @@ class StatusListener(WSListener):
                 self.transport.send_close(WSCloseCode.INTERNAL_ERROR)
                 self.transport.disconnect()
         finally:
-            # Clean up when finished
             if self.transport:
                 manager.remove_connection(self.transport)
 
@@ -254,22 +235,17 @@ class StatusListener(WSListener):
             transport.send_close(frame.get_close_code(), frame.get_close_message())
             transport.disconnect()
         elif frame.msg_type == WSMsgType.TEXT:
-            # Echo back any received messages for now
             message = frame.get_payload_as_ascii_text()
             try:
-                # Parse command if any
                 data = json.loads(message)
                 if data.get("command") == "refresh":
                     asyncio.create_task(self.send_initial_status())
                 else:
-                    # Echo back the message
                     transport.send(WSMsgType.TEXT, frame.get_payload_as_bytes())
             except:
-                # Just echo if not valid JSON
                 transport.send(WSMsgType.TEXT, frame.get_payload_as_bytes())
 
 
-# Echo WebSocket listener (example)
 class EchoListener(WSListener):
     def on_ws_connected(self, transport: WSTransport):
         """Handle new WebSocket connection."""
@@ -282,9 +258,8 @@ class EchoListener(WSListener):
             transport.send_close(frame.get_close_code(), frame.get_close_message())
             transport.disconnect()
         else:
-            # Echo back all messages with a timestamp
             echo_data = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "message": (
                     frame.get_payload_as_ascii_text()
                     if frame.msg_type == WSMsgType.TEXT
@@ -294,9 +269,7 @@ class EchoListener(WSListener):
             transport.send(WSMsgType.TEXT, json.dumps(echo_data).encode())
 
 
-# Chat WebSocket listener (example)
 class ChatListener(WSListener):
-    # Static registry of chat clients
     clients: List[WSTransport] = []
 
     def on_ws_connected(self, transport: WSTransport):
@@ -308,7 +281,6 @@ class ChatListener(WSListener):
         }
         transport.send(WSMsgType.TEXT, json.dumps(welcome_message).encode())
 
-        # Broadcast join message to all other clients
         join_message = {"type": "system", "message": "A new user has joined the chat"}
         self.broadcast(json.dumps(join_message).encode(), exclude=transport)
 
@@ -317,7 +289,6 @@ class ChatListener(WSListener):
         if transport in ChatListener.clients:
             ChatListener.clients.remove(transport)
 
-        # Broadcast leave message to all remaining clients
         leave_message = {"type": "system", "message": "A user has left the chat"}
         self.broadcast(json.dumps(leave_message).encode())
 
@@ -327,7 +298,6 @@ class ChatListener(WSListener):
             transport.send_close(frame.get_close_code(), frame.get_close_message())
             transport.disconnect()
         elif frame.msg_type == WSMsgType.TEXT:
-            # Broadcast the message to all clients
             try:
                 message = frame.get_payload_as_ascii_text()
                 data = json.loads(message)
@@ -339,7 +309,6 @@ class ChatListener(WSListener):
                 }
                 self.broadcast(json.dumps(chat_message).encode())
             except:
-                # Send error for invalid messages
                 error_message = {"type": "error", "message": "Invalid message format"}
                 transport.send(WSMsgType.TEXT, json.dumps(error_message).encode())
 
@@ -350,11 +319,9 @@ class ChatListener(WSListener):
                 try:
                     client.send(WSMsgType.TEXT, message)
                 except:
-                    # Ignore errors, client will be removed on next interaction
                     pass
 
 
-# Factory function for WebSocket endpoints
 async def ws_listener_factory(
     request: WSUpgradeRequest, path_params: dict, query_params: dict, db: Session
 ):
@@ -362,57 +329,46 @@ async def ws_listener_factory(
     path = request.path
 
     if path.startswith("/ws/status/"):
-        # Extract request_id from path
         request_id = path_params.get("request_id")
         token = query_params.get("token")
 
         if not token:
-            return None  # No token provided
+            return None
 
         try:
-            # Verify token and get user info
             payload = verify_token(token)
             user_id = payload.get("sub")
 
             if not user_id:
-                return None  # Invalid token
+                return None
 
-            # Create a status listener for this user and request
             return StatusListener(user_id, request_id, db)
         except:
             return None
 
     elif path == "/ws/echo":
-        # Echo example endpoint - no authentication required
         return EchoListener()
 
     elif path == "/ws/chat":
-        # Chat example endpoint - no authentication required
         return ChatListener()
 
-    # Unknown path
     return None
 
 
-# Function to start the WebSocket server
 async def start_ws_server(
     host: str = "127.0.0.1", port: int = 8001, db: Session = None
 ):
     """Start the WebSocket server on the specified host and port."""
 
-    # Middleware for db sessions and path params
     def listener_factory(request: WSUpgradeRequest):
-        # Extract path parameters
         path = request.path
         path_params = {}
 
-        # Extract request_id from status path
         if path.startswith("/ws/status/"):
             parts = path.split("/")
             if len(parts) >= 4:
                 path_params["request_id"] = parts[3]
 
-        # Extract query parameters
         query_params = {}
         if request.query_string:
             query_string = request.query_string.decode()
@@ -422,12 +378,10 @@ async def start_ws_server(
                     key, value = pair.split("=", 1)
                     query_params[key] = value
 
-        # Create a database session
         db_session = next(get_db())
 
         return ws_listener_factory(request, path_params, query_params, db_session)
 
-    # Create and start the WebSocket server
     server = await ws_create_server(listener_factory, host, port)
     for s in server.sockets:
         print(f"WebSocket server started on {s.getsockname()}")
@@ -435,7 +389,6 @@ async def start_ws_server(
     return server
 
 
-# Example implementation of a WebSocket route using FastAPI's websocket route
 @router.websocket("/ws/status/{request_id}")
 async def websocket_status_endpoint(request_id: str, token: str = Query(None)):
     """
@@ -466,10 +419,8 @@ async def websocket_chat_endpoint():
     pass
 
 
-# Startup event to initialize the WebSocket server
 async def init_ws_server():
     """Initialize the WebSocket server when the application starts."""
-    # This should be called from the app's startup event
     db = next(get_db())
     server = await start_ws_server(db=db)
     return server
