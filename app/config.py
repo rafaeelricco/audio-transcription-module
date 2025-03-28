@@ -35,21 +35,17 @@ def get_postgres_uri():
 class Settings(BaseSettings):
     """Base settings for the application"""
 
-    # Application settings
     APP_NAME: str = "Audio-to-Text API"
     APP_VERSION: str = "1.0.0"
 
-    # Server settings
     APP_HOST: str = os.getenv("APP_HOST")
     APP_PORT: int = int(os.getenv("APP_PORT"))
     WS_HOST: str = os.getenv("WS_HOST")
     WS_PORT: int = int(os.getenv("WS_PORT"))
 
-    # Environment settings
     ENVIRONMENT: str = os.getenv("ENV")
     DEBUG: bool = os.getenv("DEBUG").lower() in ("true", "1", "t")
 
-    # Database settings
     DB_USER: str = os.getenv("DB_USER")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD")
     DB_HOST: str = os.getenv("DB_HOST")
