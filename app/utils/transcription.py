@@ -39,7 +39,7 @@ def get_provider(provider_name: str):
     return providers[provider_name]()
 
 
-def load_prompt_template() -> str:
+def load_prompt_template(input_text) -> str:
     prompt = f"""
     Analise esta transcrição e crie um resumo completo e organizado que substitua efetivamente a necessidade de assistir ao vídeo/áudio original. Retorne o resumo formatado em Markdown sem tags de bloco de código. Adapte a estrutura com base no conteúdo específico, seguindo estas diretrizes:
 
@@ -106,7 +106,7 @@ def process_text(input_text: str) -> str:
         Logger.log(True, f"Using provider: {provider_name}")
         provider = get_provider(provider_name)
 
-        template = load_prompt_template()
+        template = load_prompt_template(input_text)
         prompt = template.format(input_text=input_text)
 
         Logger.log(True, "Sending request to AI model...")

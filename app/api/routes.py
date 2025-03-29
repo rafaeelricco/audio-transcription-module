@@ -11,7 +11,7 @@ from app.model.user import User
 from app.model.request import ProcessingRequest
 from app.utils.auth import get_current_user
 from app.ws import manager
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ class ProcessRunner:
                 line = line_bytes.decode("utf-8").strip()
                 if line:
                     log_entry = {
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(timezone).isoformat(),
                         "status": "processing",
                         "message": line,
                     }

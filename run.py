@@ -413,7 +413,7 @@ def main():
 
     if args.youtube:
         try:
-            from youtube_downloader import YouTubeDownloader
+            from app.utils.yt_downloader import YouTubeDownloader
 
             Logger.log(True, "Initializing YouTube downloader")
             downloader = YouTubeDownloader()
