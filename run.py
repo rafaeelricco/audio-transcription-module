@@ -1,3 +1,77 @@
+"""         _                      
+   _____   (_)  _____  _____  ____ 
+  / ___/  / /  / ___/ / ___/ / __ \
+ / /     / /  / /__  / /__  / /_/ /
+/_/     /_/   \___/  \___/  \____/ 
+                                   
+© r1cco.com
+
+Advanced Audio Transcription Tool with AI Processing
+
+This script implements a comprehensive audio transcription system that can:
+1. Transcribe audio files using OpenAI's Whisper model
+2. Process YouTube videos by extracting and transcribing their audio
+3. Handle batch processing of multiple files efficiently
+4. Optimize transcription with GPU acceleration when available
+5. Post-process transcriptions with AI for better organization
+
+Key Features:
+- Support for various Whisper models (tiny, base, small, medium, large, turbo)
+- YouTube video processing capabilities
+- Parallel processing for batch transcription
+- GPU acceleration (CUDA) when available
+- AI-based post-processing of transcripts
+- Detailed logging and error handling
+- Configurable transcription parameters
+
+Required Dependencies:
+- openai-whisper: OpenAI's Whisper speech recognition model
+- torch: PyTorch for model acceleration
+- numpy: For audio processing
+- youtube_dl/pytube: For YouTube video downloading (when using --youtube)
+
+Usage Examples:
+
+1. Transcribe a single audio file:
+   python run.py --audio path/to/audio/file.mp3
+
+2. Transcribe a YouTube video:
+   python run.py --youtube "https://www.youtube.com/watch?v=VIDEO_ID"
+
+3. Batch process multiple audio files:
+   python run.py --audio file1.mp3 file2.mp3 file3.mp3
+
+4. Use parallel processing for faster batch transcription:
+   python run.py --audio *.mp3 --parallel
+
+Arguments:
+--audio:           Path to input audio file(s) or patterns (accepts wildcards)
+--youtube:         YouTube video URL for transcription
+--output:          Output path (file or directory)
+--device:          Device to use for processing (cpu, cuda, auto) (default: auto)
+--verbose, -v:     Enable verbose mode for debugging
+--parallel:        Enable parallel processing for batch transcription
+--config:          Path to configuration file (default: config.yml)
+
+Examples:
+    # Transcribe a local audio file with GPU acceleration
+    python run.py --audio interview.mp3 --device cuda
+
+    # Process a YouTube video and save output to specific location
+    python run.py --youtube "https://www.youtube.com/watch?v=z3119x-Txd0" --output transcripts/youtube_talk.txt
+
+    # Batch process all MP3 files in a directory
+    python run.py --audio "recordings/*.mp3" --output transcripts/
+
+    # Enable verbose logging for troubleshooting
+    python run.py --audio meeting.mp3 --verbose
+
+Output Files:
+- transcript.txt: Raw transcript text
+- transcript_organized.md: AI-processed and organized transcript (when available)
+- Additional files in the 'dist' directory by default, or in the specified output directory
+"""
+
 import os
 import torch
 import glob
