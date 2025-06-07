@@ -1,9 +1,4 @@
-"""         _                      
-   _____   (_)  _____  _____  ____ 
-  / ___/  / /  / ___/ / ___/ / __ \
- / /     / /  / /__  / /__  / /_/ /
-/_/     /_/   \___/  \___/  \____/ 
-                                   
+"""                               
 © r1cco.com
 
 Advanced Audio Transcription Tool with AI Processing
