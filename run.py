@@ -351,7 +351,7 @@ def save_and_process_transcript(
             if file_name:
                 safe_name = sanitize_filename(file_name)
             base_output_path = f"dist/{safe_name}"
-            raw_path = f"{base_output_path}.txt"
+            raw_path = f"{base_output_path.lower().replace(' ', '_')}.txt"
 
         Logger.log(True, "Saving raw transcript")
         ensure_dir(os.path.dirname(raw_path))
