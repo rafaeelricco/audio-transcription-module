@@ -70,12 +70,42 @@ class Logger:
             level (str): Log level - one of: 'info', 'debug', 'warning', 'error'.
                         Debug messages are only shown when verbose mode is enabled.
         """
-        if level == "error" and "fatal" in message.lower():
+        # Skip debug messages if not in verbose mode
+        if level == "debug" and not cls.VERBOSE:
+            return
+
+        # Choose prefix based on success status
+        if level == "error":
             prefix = "✗"
+        elif success:
+            prefix = "✓"
+        else:
+            prefix = "✗"
+
+        # Format message with level and prefix
+        if level == "error":
             formatted_message = f"{prefix} [ERROR] {message}"
-            logger = cls._get_logger()
-            with cls._lock:
+        elif level == "warning":
+            formatted_message = f"{prefix} [WARNING] {message}"
+        elif level == "debug":
+            formatted_message = f"{prefix} [DEBUG] {message}"
+        else:  # info
+            formatted_message = f"{prefix} {message}"
+
+        # Print to console immediately for user feedback
+        print(formatted_message)
+
+        # Also log to the internal logger if needed
+        logger = cls._get_logger()
+        with cls._lock:
+            if level == "error":
                 logger.error(formatted_message)
+            elif level == "warning":
+                logger.warning(formatted_message)
+            elif level == "debug":
+                logger.debug(formatted_message)
+            else:
+                logger.info(formatted_message)
 
     @classmethod
     def setup_file_logging(
