@@ -248,7 +248,7 @@ class YouTubeDownloader:
 
             title = info["title"]
             safe_title = sanitize_filename(title)
-            output_filename = f"{safe_title}.mp3"
+            output_filename = f"{safe_title.lower().replace(' ', '_')}.mp3"
             output_path = os.path.join(self.output_path, output_filename)
 
             cmd = [
