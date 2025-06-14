@@ -30,8 +30,9 @@ Usage Examples:
 1. Transcribe a single audio file:
    python run.py --audio path/to/audio/file.mp3
 
-2. Transcribe a YouTube video:
+2. Transcribe YouTube videos (single or multiple):
    python run.py --youtube "https://www.youtube.com/watch?v=VIDEO_ID"
+   python run.py --youtube "URL1" "URL2" "URL3" --output transcripts/
 
 3. Batch process multiple audio files:
    python run.py --audio file1.mp3 file2.mp3 file3.mp3
@@ -41,7 +42,7 @@ Usage Examples:
 
 Arguments:
 --audio:           Path to input audio file(s) or patterns (accepts wildcards)
---youtube:         YouTube video URL for transcription
+--youtube:         YouTube video URL(s) for transcription (one or more URLs)
 --output:          Output path (file or directory)
 --device:          Device to use for processing (cpu, cuda, auto) (default: auto)
 --verbose, -v:     Enable verbose mode for debugging
@@ -52,8 +53,8 @@ Examples:
     # Transcribe a local audio file with GPU acceleration
     python run.py --audio interview.mp3 --device cuda
 
-    # Process a YouTube video and save output to specific location
-    python run.py --youtube "https://www.youtube.com/watch?v=z3119x-Txd0" --output transcripts/youtube_talk.txt
+    # Process multiple YouTube videos and save outputs to a directory
+    python run.py --youtube "URL1" "URL2" "URL3" --output transcripts/
 
     # Batch process all MP3 files in a directory
     python run.py --audio "recordings/*.mp3" --output transcripts/
@@ -80,6 +81,7 @@ from argparse import ArgumentParser
 from app.utils.logger import Logger
 from app.utils.transcription import process_text
 from app.utils.functions import load_config, ensure_dir, sanitize_filename
+from app.utils.yt_downloader import YouTubeDownloader
 
 
 class WhisperModel:
@@ -435,6 +437,56 @@ def process_batch(
     return results
 
 
+def process_youtube_batch(urls: List[str], output_dir: str = None, device: str = None) -> List[Dict[str, Any]]:
+    """
+    Process multiple YouTube URLs in batch.
+
+    Args:
+        urls (List[str]): List of YouTube URLs to process
+        output_dir (str, optional): Directory to save transcription outputs.
+                                   If None, uses a default location.
+        device (str, optional): Device to use for transcription.
+                              Defaults to auto-selection.
+
+    Returns:
+        List[Dict[str, Any]]: List of results for each processed URL
+    """
+    results = []
+    downloader = YouTubeDownloader()
+
+    for url in urls:
+        try:
+            Logger.log(True, f"Processing YouTube URL: {url}")
+            
+            audio_path = downloader.download_audio_only(url)
+            if not audio_path.get("success", False):
+                Logger.log(False, f"YouTube download failed for {url}", "error")
+                results.append({"url": url, "success": False, "error": audio_path.get("error", "Download failed")})
+                continue
+
+            if output_dir:
+                file_name = audio_path.get("title", "youtube_transcript")
+                output_path = os.path.join(output_dir, f"{file_name}.txt")
+            else:
+                output_path = None
+
+            transcript_result = asyncio.run(transcribe_audio(audio_path, output_path, device))
+
+            if transcript_result:
+                save_and_process_transcript(
+                    transcript_result["text"], output_path, audio_path.get("title", "youtube_transcript")
+                )
+                results.append({"url": url, "success": True, "output": output_path})
+            else:
+                results.append({"url": url, "success": False, "error": "Transcription failed"})
+
+        except Exception as e:
+            Logger.log(False, f"Error processing {url}: {str(e)}", "error")
+            results.append({"url": url, "success": False, "error": str(e)})
+
+    return results
+
+
 def main():
     """
     Main function for audio transcription workflow.
@@ -448,7 +500,7 @@ def main():
         "--audio", required=False, nargs="+", help="Input audio file(s) or patterns"
     )
     parser.add_argument(
-        "--youtube", type=str, help="YouTube video URL for transcription"
+        "--youtube", type=str, nargs="+", help="YouTube video URL(s) for transcription"
     )
     parser.add_argument("--output", help="Output path (file or directory)")
     parser.add_argument(
@@ -484,30 +536,53 @@ def main():
         try:
             from app.utils.yt_downloader import YouTubeDownloader
 
-            Logger.log(True, "Initializing YouTube downloader")
-            downloader = YouTubeDownloader()
+            is_batch = len(args.youtube) > 1
+            output_is_dir = args.output and (os.path.isdir(args.output) or args.output.endswith("/") or is_batch)
 
-            Logger.log(True, "Downloading audio from YouTube")
-            audio_path = downloader.download_audio_only(args.youtube)
+            if is_batch:
+                Logger.log(True, f"Batch processing {len(args.youtube)} YouTube URLs")
+                if output_is_dir:
+                    ensure_dir(args.output)
+                    output_dir = args.output
+                else:
+                    output_dir = "dist"
+                    ensure_dir(output_dir)
 
-            if not audio_path.get("success", False):
-                Logger.log(False, "YouTube download failed", "error")
-                Logger.log(
-                    False,
-                    f"Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}",
-                )
+                results = process_youtube_batch(args.youtube, output_dir, device)
+                
+                success_count = sum(1 for r in results if r["success"])
+                print(f"\n✓ Processed {success_count}/{len(results)} YouTube videos successfully")
+
+                if success_count < len(results):
+                    failed = [r["url"] for r in results if not r["success"]]
+                    print(f"✗ Failed to process: {', '.join(failed)}")
+
+                return results
+            else:
+                Logger.log(True, "Initializing YouTube downloader")
+                downloader = YouTubeDownloader()
+
+                Logger.log(True, "Downloading audio from YouTube")
+                audio_path = downloader.download_audio_only(args.youtube[0])
+
+                if not audio_path.get("success", False):
+                    Logger.log(False, "YouTube download failed", "error")
+                    Logger.log(
+                        False,
+                        f"Failed to download YouTube audio: {audio_path.get('error', 'Unknown error')}",
+                    )
+                    return False
+
+                Logger.log(True, "Preparing for transcription")
+                transcript_result = asyncio.run(transcribe_audio(audio_path, None))
+
+                if transcript_result:
+                    file_name = audio_path.get("title", "youtube_transcript")
+                    save_and_process_transcript(
+                        transcript_result["text"], args.output, file_name
+                    )
+                    return transcript_result
                 return False
-
-            Logger.log(True, "Preparing for transcription")
-            transcript_result = asyncio.run(transcribe_audio(audio_path, None))
-
-            if transcript_result:
-                file_name = audio_path.get("title", "youtube_transcript")
-                save_and_process_transcript(
-                    transcript_result["text"], args.output, file_name
-                )
-                return transcript_result
-            return False
 
         except ImportError:
             Logger.log(False, "YouTube downloader module not available", "error")
