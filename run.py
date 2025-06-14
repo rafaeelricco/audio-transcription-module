@@ -183,7 +183,7 @@ def get_config() -> Dict[str, Any]:
     except FileNotFoundError:
         return {
             "transcription": {
-                "model_name": "whisper-large-v3-turbo",
+                "model_name": "large-v3-turbo",
                 "temperature": 0.0,
                 "no_speech_threshold": 0.4,
                 "beam_size": 5,
@@ -250,7 +250,7 @@ async def transcribe_audio(
         config = get_config().get("transcription", {})
         device = select_device(device)
 
-        model_name = config.get("model_name", "whisper-large-v3-turbo")
+        model_name = config.get("model_name", "large-v3-turbo")
         model_manager = WhisperModel()
         model = model_manager.load_model(model_name, device)
 
