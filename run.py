@@ -48,6 +48,7 @@ Arguments:
 --verbose, -v:     Enable verbose mode for debugging
 --parallel:        Enable parallel processing for batch transcription
 --config:          Path to configuration file (default: config.yml)
+--only-raw:        Save only the raw transcript without AI processing
 
 Examples:
     # Transcribe a local audio file with GPU acceleration
@@ -249,7 +250,7 @@ async def transcribe_audio(
         config = get_config().get("transcription", {})
         device = select_device(device)
 
-        model_name = config.get("model_name", "turbo")
+        model_name = config.get("model_name", "whisper-large-v3-turbo")
         model_manager = WhisperModel()
         model = model_manager.load_model(model_name, device)
 
@@ -320,7 +321,7 @@ async def process_url(url: str, request_id: str):
 
 
 def save_and_process_transcript(
-    transcript_text: str, output_path: str = None, file_name: str = None
+    transcript_text: str, output_path: str = None, file_name: str = None, only_raw: bool = False
 ) -> bool:
     """
     Save transcript to file and optionally process with AI.
@@ -334,6 +335,7 @@ def save_and_process_transcript(
                                     If None, uses a default location.
         file_name (str, optional): Name to use for the output file.
                                   If None, uses a default name.
+        only_raw (bool, optional): If True, skips AI processing. Defaults to False.
 
     Returns:
         bool: True if saving and processing was successful, False otherwise
@@ -357,6 +359,11 @@ def save_and_process_transcript(
             f.write(transcript_text)
 
         Logger.log(True, f"Raw transcription saved to: {raw_path}")
+
+        if only_raw:
+            Logger.log(True, "Skipping AI processing as per --only-raw flag.")
+            return True
+
         Logger.log(True, "Processing transcript with AI")
         try:
             processed_text = process_text(transcript_text)
@@ -386,7 +393,7 @@ def save_and_process_transcript(
 
 
 def process_batch(
-    files: List[str], output_dir: str = None, device: str = None
+    files: List[str], output_dir: str = None, device: str = None, only_raw: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Process multiple audio files in batch.
@@ -400,6 +407,7 @@ def process_batch(
                                    If None, uses a default location.
         device (str, optional): Device to use for transcription ('cpu', 'cuda', 'auto').
                               Defaults to auto-selection.
+        only_raw (bool, optional): If True, skips AI processing. Defaults to False.
 
     Returns:
         List[Dict[str, Any]]: List of results for each processed file, including
@@ -423,7 +431,7 @@ def process_batch(
 
             if result:
                 save_and_process_transcript(
-                    result["text"], output_path, os.path.basename(file_path)
+                    result["text"], output_path, os.path.basename(file_path), only_raw
                 )
 
             results.append(
@@ -437,7 +445,7 @@ def process_batch(
     return results
 
 
-def process_youtube_batch(urls: List[str], output_dir: str = None, device: str = None) -> List[Dict[str, Any]]:
+def process_youtube_batch(urls: List[str], output_dir: str = None, device: str = None, only_raw: bool = False) -> List[Dict[str, Any]]:
     """
     Process multiple YouTube URLs in batch.
 
@@ -447,6 +455,7 @@ def process_youtube_batch(urls: List[str], output_dir: str = None, device: str =
                                    If None, uses a default location.
         device (str, optional): Device to use for transcription.
                               Defaults to auto-selection.
+        only_raw (bool, optional): If True, skips AI processing. Defaults to False.
 
     Returns:
         List[Dict[str, Any]]: List of results for each processed URL
@@ -474,7 +483,7 @@ def process_youtube_batch(urls: List[str], output_dir: str = None, device: str =
 
             if transcript_result:
                 save_and_process_transcript(
-                    transcript_result["text"], output_path, audio_path.get("title", "youtube_transcript")
+                    transcript_result["text"], output_path, audio_path.get("title", "youtube_transcript"), only_raw
                 )
                 results.append({"url": url, "success": True, "output": output_path})
             else:
@@ -526,6 +535,11 @@ def main():
         default="config.yml",
         help="Path to configuration file",
     )
+    parser.add_argument(
+        "--only-raw",
+        action="store_true",
+        help="Save only the raw transcript without AI processing",
+    )
     args = parser.parse_args()
     device = select_device(args.device)
 
@@ -548,7 +562,7 @@ def main():
                     output_dir = "dist"
                     ensure_dir(output_dir)
 
-                results = process_youtube_batch(args.youtube, output_dir, device)
+                results = process_youtube_batch(args.youtube, output_dir, device, args.only_raw)
                 
                 success_count = sum(1 for r in results if r["success"])
                 print(f"\n✓ Processed {success_count}/{len(results)} YouTube videos successfully")
@@ -579,7 +593,7 @@ def main():
                 if transcript_result:
                     file_name = audio_path.get("title", "youtube_transcript")
                     save_and_process_transcript(
-                        transcript_result["text"], args.output, file_name
+                        transcript_result["text"], args.output, file_name, args.only_raw
                     )
                     return transcript_result
                 return False
@@ -652,7 +666,7 @@ def main():
                         )
                         if result:
                             save_and_process_transcript(
-                                result["text"], output_path, os.path.basename(file_path)
+                                result["text"], output_path, os.path.basename(file_path), args.only_raw
                             )
                         results.append(
                             {
@@ -669,7 +683,7 @@ def main():
                             {"file": file_path, "success": False, "error": str(e)}
                         )
             else:
-                results = process_batch(audio_files, output_dir, device)
+                results = process_batch(audio_files, output_dir, device, args.only_raw)
 
             success_count = sum(1 for r in results if r["success"])
             print(f"\n✓ Processed {success_count}/{len(results)} files successfully")
@@ -699,7 +713,7 @@ def main():
 
             if result:
                 save_and_process_transcript(
-                    result["text"], output_path, os.path.basename(audio_path)
+                    result["text"], output_path, os.path.basename(audio_path), args.only_raw
                 )
 
             return result
